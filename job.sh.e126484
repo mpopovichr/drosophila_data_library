@@ -1,0 +1,3 @@
+/home/mpopovic/.bashrc: line 32: /usr/bin/xset: No such file or directory
+/home/sge62/default/spool/pallas32/job_scripts/126484: line 1: syntax error near unexpected token `;;'
+/home/sge62/default/spool/pallas32/job_scripts/126484: line 1: `;; This buffer is for notes you don't want to save, and for Lisp evaluation.'
