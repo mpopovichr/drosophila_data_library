@@ -11,13 +11,36 @@ import pandas.rpy.common as com
 import os.path
 from PyQt4 import QtGui
 
+import lib
+
 def fill_zeros(s,n):
     while len(s) < n:
         s= ''.join(('0',s))
     return s
 
+global Path
+Path= '/data/biophys/etournay/'
 global DB_path
-DB_path= '/data/biophys/etournay/DB/'
+DB_path= Path+'DB/'
+movie_list= os.listdir(DB_path)
+movie_list=['WT_25deg_111102',
+            'WT_25deg_111103',
+            'WT_25deg_120531',
+            'WT_25-30deg_130921',
+            'WT_25-30deg_130926',
+            'MTdp_25deg_140222',
+            'WT_sevBdist-25deg_130131',
+            'WT_severedHB-25deg_130107',
+            'WT_severedHBdist-25deg_130110',
+            'WT_antLinkCut-25deg_131227',
+            'HTcdc2_25-30deg_130924',
+            'HTcdc2_25-30deg_130927',
+            'HTcdc2_25-30deg_130925',
+            'MTcdc2_25-30deg_130919',
+            'MTcdc2_25-30deg_130917',
+            'MTcdc2_25-30deg_130916',
+            'MTcdc2_25deg_130930',
+            'MTcdc2_25deg_130905']
 
 class Movie:
     def __init__(self, name):
@@ -53,7 +76,12 @@ class Movie:
             del self.Ta_t[self.Ta_t.columns[0]]
     def load_roiBT(self):
         if self.roiBT_loaded == False:
-            print('Loading roiBT from csv...')
+            print('Loading roiBT ...')
+            if not os.path.isfile(DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv'):
+                print('Converting .RData to .csv...')
+                ro.r('load("'+DB_path+self.name+'/roi_bt/lgRoiSmoothed.RData")')
+                ro.r('write.csv(lgRoiSmoothed, "'+DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv")')
+                print('Converted!')
             self.roiBT= pd.read_csv(DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv')
             self.roiBT_loaded= True
             self.regions= self.roiBT['roi'].unique()
@@ -75,99 +103,135 @@ class Movie:
             raise Exception('Region '+roi_name+' is not defined in this movie!')
         else:
             return self.cells[self.cells['cell_id'].isin(self.roiBT[self.roiBT['roi']==roi_name]['cell_id'])]
-    def region_area(self, roi_name):
-        rc= self.region_cells(roi_name)
-        return np.array([np.sum(rc[rc['frame']==f]['area']) for f in self.frames])
-    def region_shape_nematic(self, roi_name):
-        rc= self.region_cells(roi_name)
-        print('Calculating '+roi_name+' shape nematic...')
-        av_x= np.array([np.sum(rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['area']) for f in self.frames])
-        av_y= np.array([np.sum(rc[rc['frame']==f]['center_y']*rc[rc['frame']==f]['area']) for f in self.frames])
-        av_xx= np.array([np.sum(rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['area']) for f in self.frames])
-        av_xy= np.array([np.sum(rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['center_y']*rc[rc['frame']==f]['area']) for f in self.frames])
-        av_yy= np.array([np.sum(rc[rc['frame']==f]['center_y']*rc[rc['frame']==f]['center_y']*rc[rc['frame']==f]['area']) for f in self.frames])
-        del rc
-        ra= self.region_area(roi_name)
-        m_xx= (av_xx-av_x*av_x/ra)/ra**2.
-        m_yy= (av_yy-av_y*av_y/ra)/ra**2.
-        m_xy= (av_xy-av_x*av_y/ra)/ra**2.
-        s= 0.5*np.log(m_xx*m_yy - m_xy**2)
-        Q = np.arcsinh(0.5*np.sqrt((m_xx-m_yy)**2.+(2*m_xy)**2.)/np.exp(s))
-        twophi = np.arctan2((2*m_xy),(m_xx-m_yy))
-        return Q*np.cos(twophi), Q*np.sin(twophi), s
-    def region_center(self, roi_name):
-        rc= self.region_cells(roi_name)
-        av_x= np.array([np.sum(rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['area']) for f in self.frames])
-        av_y= np.array([np.sum(rc[rc['frame']==f]['center_y']*rc[rc['frame']==f]['area']) for f in self.frames])
-        ra= self.region_area(roi_name)
-        av_x, av_y= av_x/ra, av_y/ra
-        del rc
-        return av_x, av_y
-    def region_mean_length_height(self, roi_name):
-        Q1, Q2, s= self.region_shape_nematic(roi_name)
-        print('Calculating '+roi_name+' mean length and height...')
-        return np.sqrt(self.region_area(roi_name))*np.exp(0.5*Q1), np.sqrt(self.region_area(roi_name))*np.exp(-0.5*Q1)
+    def region_deform_tensor(self, roi_name):
+        if 'avgDeformTensorsWide.tsv' in os.listdir(DB_path+self.name+'/shear_contrib/'+roi_name):
+            df_DB_shear= pp.read_csv(DB_path+self.name+'/shear_contrib/'+roi_name+'/avgDeformTensorsWide.tsv', sep='\t')
+        else:
+            ro.r('load("'+DB_path+self.name+'/shear_contrib/'+roi_name+'/avgDeformTensorsWide.RData")')
+            df_DB_shear= com.load_data('avgDeformTensorsWide')
+        return df_DB_shear
+    def load_PIV_whole_wing(self, piv_region):
+        if not os.path.exists(Path+'PIV/'+self.name):
+            print('PIV does not exists for '+self.name)
+        else:
+            return pp.read_csv(Path+'PIV/'+self.name+'/Segmentation/rotated_pivData_'+piv_region+'.csv')
 
 
 
-def region_shape_nematic(rc):
-    frames= sorted(rc['frame'].unique())
-    av_x= np.array([np.sum(rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['area']) for f in frames])
-    av_y= np.array([np.sum(rc[rc['frame']==f]['center_y']*rc[rc['frame']==f]['area']) for f in frames])
-    av_xx= np.array([np.sum(rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['area']) for f in frames])
-    av_xy= np.array([np.sum(rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['center_y']*rc[rc['frame']==f]['area']) for f in frames])
-    av_yy= np.array([np.sum(rc[rc['frame']==f]['center_y']*rc[rc['frame']==f]['center_y']*rc[rc['frame']==f]['area']) for f in frames])
-    ra= np.array([np.sum(rc[rc['frame']==f]['area']) for f in frames])
-    m_xx= (av_xx-av_x*av_x/ra)/ra**2.
-    m_yy= (av_yy-av_y*av_y/ra)/ra**2.
-    m_xy= (av_xy-av_x*av_y/ra)/ra**2.
-    s= 0.5*np.log(m_xx*m_yy - m_xy**2)
-    Q = np.arcsinh(0.5*np.sqrt((m_xx-m_yy)**2.+(2*m_xy)**2.)/np.exp(s))
-    twophi = np.arctan2((2*m_xy),(m_xx-m_yy))
-    return Q*np.cos(twophi), Q*np.sin(twophi), s
+m_WT= Movie('WT_25deg_111103')
+m_AlC= Movie('WT_antLinkCut-25deg_131227')
+m_DC= Movie('WT_sevBdist-25deg_130131')
+m_DlC= Movie('WT_distLinkCut-25deg_131226')
 
-def region_area(rc):
-    frames= sorted(rc['frame'].unique())
-    return np.array([np.sum(rc[rc['frame']==f]['area']) for f in frames])
+movies= [m_WT, m_AlC, m_DC, m_DlC]
+blade_piv= m_DC.load_PIV_whole_wing('blade_only')
+hinge_piv= m_DC.load_PIV_whole_wing('hinge_only')
 
-def region_mean_length_height(area, Q1):
-    return np.sqrt(area)*np.exp(0.5*Q1), np.sqrt(area)*np.exp(-0.5*Q1)
-
-def region_center(rc):
-    frames= sorted(rc['frame'].unique())
-    av_x= np.array([np.sum(rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['area']) for f in frames])
-    av_y= np.array([np.sum(rc[rc['frame']==f]['center_y']*rc[rc['frame']==f]['area']) for f in frames])
-    ra= np.array([np.sum(rc[rc['frame']==f]['area']) for f in frames])
-    av_x, av_y= av_x/ra, av_y/ra
-    return av_x, av_y
-
-#m= Movie('WT_25deg_111103')
-#m= Movie('WT_antLinkCut-25deg_131227')
-m= Movie('WT_sevBdist-25deg_130131')
-#m.load_triList()
-#m.load_Ta_t()
-m.load_cells()
-
-ww= m.region_cells('whole_wing')
-HBint= m.region_cells('HBinterface')
+ww= m_DlC.region_cells('whole_wing')
+HBint= m_DlC.region_cells('HBinterface')
 HB_x= [HBint[HBint['frame']==f]['center_x'].mean() for f in m.frames]
 ww_hinge= pd.DataFrame()
 ww_blade= pd.DataFrame()
-for frame in m.frames:
+for frame in m_DlC.frames:
     print frame
     ww_frame= ww[ww['frame']==frame]
     ww_hinge= ww_hinge.append(ww_frame[ww_frame['center_x']<HB_x[frame]])
     ww_blade= ww_blade.append(ww_frame[ww_frame['center_x']>HB_x[frame]])
 
-Q1_hinge, Q2_hinge, s_hinge= region_shape_nematic(ww_hinge)
-Q1_blade, Q2_blade, s_blade= region_shape_nematic(ww_blade)
-area_hinge= region_area(ww_hinge)
-area_blade= region_area(ww_blade)
-L_hinge, h_hinge= region_mean_length_height(area_hinge, Q1_hinge)
-L_blade, h_blade= region_mean_length_height(area_blade, Q1_blade)
+Q1_hinge, Q2_hinge, s_hinge= m_DlC.region_shape_nematic(ww_hinge)
+Q1_blade, Q2_blade, s_blade= m_DlC.region_shape_nematic(ww_blade)
+area_hinge= m_DlC.region_area(ww_hinge)
+area_blade= m_DlC.region_area(ww_blade)
+L_hinge, h_hinge= np.sqrt(area_hinge)*np.exp(0.5*Q1_hinge), np.sqrt(area_hinge)*np.exp(-0.5*Q1_hinge)
+L_blade, h_blade= np.sqrt(area_blade)*np.exp(0.5*Q1_blade), np.sqrt(area_blade)*np.exp(-0.5*Q1_blade)
+
+blade_vxx= np.array(blade_piv.groupby('frame')['Vxx'].mean()*3600.)
+blade_vyy= np.array(blade_piv.groupby('frame')['Vyy'].mean()*3600.)
+hinge_vxx= np.array(hinge_piv.groupby('frame')['Vxx'].mean()*3600.)
+hinge_vyy= np.array(hinge_piv.groupby('frame')['Vyy'].mean()*3600.)
+time= np.array(sorted(blade_piv['time_sec'].unique()))/3600.
+dt= time[1:]-time[:-1]
+
+m_DC.blade_L, m_DC.blade_h= m_DC.region_mean_length_height(m_DC.region_cells('blade'))
+m_DC.hinge_L, m_DC.hinge_h= m_DC.region_mean_length_height(m_DC.region_cells('hinge'))
+
+f, ((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2)
+
+ax1.plot(time[:230], 1480*np.exp(np.cumsum(blade_vxx[:-1]*dt))[:230], label='PIV')
+ax1.plot(time[:230], m_DC.blade_L[:230], label='length')
+ax1.legend(loc='best')
+
+ax2.plot(time[:230], 1370*np.exp(np.cumsum(blade_vyy[:-1]*dt))[:230], label='PIV')
+ax2.plot(time[:230], m_DC.blade_h[:230], label='height')
+ax2.legend(loc='best')
+
+ax3.plot(time[:230], 670*np.exp(np.cumsum(hinge_vxx*dt))[:230], label='PIV')
+ax3.plot(time[:230], m_DC.hinge_L[:230], label='length')
+ax3.legend(loc='best')
+
+ax4.plot(time[:230], 900*np.exp(np.cumsum(hinge_vyy*dt))[:230], label='PIV')
+ax4.plot(time[:230], m_DC.hinge_h[:230], label='height')
+ax4.legend(loc='best')
+
+plt.show()
+
+len(L_blade)
+f, ((ax1,ax2),(ax3,ax4)) = plt.subplots(2,2)
+
+ax1.plot(time[:230], 1580*np.exp(np.cumsum(blade_vxx[:-1]*dt))[:230], label='PIV')
+ax1.plot(time[:230], L_blade[:230], label='length')
+ax1.legend(loc='best')
+
+ax2.plot(time[:230], 1525*np.exp(np.cumsum(blade_vyy[:-1]*dt))[:230], label='PIV')
+ax2.plot(time[:230], h_blade[:230], label='height')
+ax2.legend(loc='best')
+
+ax3.plot(time[:230], 1550*np.exp(np.cumsum(hinge_vxx*dt))[:230], label='PIV')
+ax3.plot(time[:230], L_hinge[:230], label='length')
+ax3.legend(loc='best')
+
+ax4.plot(time[:230], 1450*np.exp(np.cumsum(hinge_vyy*dt))[:230], label='PIV')
+ax4.plot(time[:230], h_hinge[:230], label='height')
+ax4.legend(loc='best')
+
+plt.show()
+
+plt.figure()
+plt.plot(time[:230], 2300000*np.exp(np.cumsum(blade_vxx[:-1]*dt))[:230]*np.exp(np.cumsum(blade_vyy[:-1]*dt))[:230], label='PIV')
+plt.plot(time[:230], L_blade[:230]*h_blade[:230], label='area')
+plt.legend(loc='best')
+plt.show()
+
+
+
+
+print m.region_cells('blade').columns
+elong_xx= np.array([m.region_cells('blade')[m.region_cells('blade')['frame']==f]['elong_xx'].mean() for f in m.frames])
+area= np.array(m.region_cells('blade')[m.region_cells('blade')['frame']==200]['area'])
+m.regions
+plt.figure()
+plt.scatter(np.log(area), elong_xx)
+plt.show()
+
+m.region_center()
+print m.region_shape_nematic(m.region_cells('blade'))
+dir(m)
+print region_center(m.region_cells('blade'))
+#m.load_triList()
+#m.load_Ta_t()
+m.load_cells()
+
+
 av_x_hinge, av_y_hinge= region_center(ww_hinge)
 av_x_blade, av_y_blade= region_center(ww_blade)
 
+otp_df= pd.DataFrame(pd.Series(L_blade))
+otp_df.columns= ['blade_L']
+otp_df['blade_h']= pd.Series(h_blade)
+otp_df['hinge_L']= pd.Series(L_hinge)
+otp_df['hinge_h']= pd.Series(h_hinge)
+
+otp_df.to_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/drosophila_data_library/height_length_data/DlC_height_length.csv')
 
 #L_hinge_WT, h_hinge_WT= L_hinge, h_hinge
 #L_blade_WT, h_blade_WT= L_blade, h_blade
@@ -300,6 +364,12 @@ for frame in m.frames:
     b_rect= patches.Rectangle((blade_av_x[frame]-0.5*L_blade[frame],blade_av_y[frame]-0.5*h_blade[frame]),L_blade[frame],h_blade[frame],fill=None, edgecolor='white', linewidth=2)
     h_rect= patches.Rectangle((hinge_av_x[frame]-0.5*L_hinge[frame],hinge_av_y[frame]-0.5*h_hinge[frame]),L_hinge[frame],h_hinge[frame],fill=None, edgecolor='green', linewidth=2)
     plt.imshow(im)
+    frame_blade_x= blade_cells[blade_cells['frame']==frame]['center_x']
+    frame_blade_y= blade_cells[blade_cells['frame']==frame]['center_y']
+    frame_hinge_x= hinge_cells[hinge_cells['frame']==frame]['center_x']
+    frame_hinge_y= hinge_cells[hinge_cells['frame']==frame]['center_y']
+    plt.scatter(frame_blade_x, frame_blade_y, c='purple', s=15, linewidths=0)
+    plt.scatter(frame_hinge_x, frame_hinge_y, c='yellow', s=15, linewidths=0)
     plt.gca().add_patch(b_rect)
     plt.gca().add_patch(h_rect)
     plt.axis('off')
