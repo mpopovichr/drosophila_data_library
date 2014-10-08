@@ -12,8 +12,8 @@ import os.path
 from PyQt4 import QtGui
 
 global Path
-#Path= '/data/biophys/etournay/'
-Path= '/Users/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/'
+Path= '/data/biophys/etournay/'
+#Path= '/Users/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/'
 global DB_path
 DB_path= Path+'DB/'
 
@@ -68,7 +68,20 @@ def region_symmetric_difference(ra, rb):
     df_gpby= df.groupby(list(df.columns))
     idx= [x[0] for x in df_gpby.groups.values() if len(x) == 1]
     return df.reindex(idx)
-
+def film_region(m, rc, dir_name):
+    if not os.path.exists(dir_name): os.makedirs(dir_name)
+    for frame in m.frames:
+        print frame
+        im_path= DB_path+'/'+m.name+'/image_data/mutant/tag/segmentationData/frame'+fill_zeros(str(frame),4)+'/original_trafo.png'
+        im= plt.imread(im_path)
+        plt.figure()
+        plt.imshow(im)
+        rc_frame= rc[rc['frame']==frame]
+        size= np.sqrt(rc_frame['area'])/15.
+        plt.scatter(rc_frame['center_x'], rc_frame['center_y'], color='red', s= size)
+        plt.tight_layout()
+        plt.savefig(dir_name+'/frame'+fill_zeros(str(frame),4)+'.png')
+        plt.close()
 
 class Movie:
     def __init__(self, name):

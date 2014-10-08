@@ -13,103 +13,95 @@ from PyQt4 import QtGui
 
 import lib
 
+m= {}
+m['WT']= lib.Movie('WT_25deg_111103')
+m['ALC']= lib.Movie('WT_antLinkCut-25deg_131227')
+m['DC']= lib.Movie('WT_sevBdist-25deg_130131')
+m['DLC']= lib.Movie('WT_distLinkCut-25deg_131226')
 
-#m_WT= Movie('WT_25deg_111103')
-m= lib.Movie('WT_sevBdist-25deg_130131')
-m_AlC= lib.Movie('WT_antLinkCut-25deg_131227')
-m_DC= lib.Movie('WT_sevBdist-25deg_130131')
-m_DlC= lib.Movie('WT_distLinkCut-25deg_131226')
+pm= 'DLC'
 
+m[pm].hinge_fcy, m[pm].blade_fcy= m[pm].fancy_hinge_blade()
+m[pm].hinge_old, m[pm].blade_old= m[pm].whole_hinge_blade()
 
+m[pm].hinge_fcy_L, m[pm].hinge_fcy_h= lib.region_mean_length_height(m[pm].hinge_fcy)
+m[pm].blade_fcy_L, m[pm].blade_fcy_h= lib.region_mean_length_height(m[pm].blade_fcy)
+m[pm].hinge_old_L, m[pm].hinge_old_h= lib.region_mean_length_height(m[pm].hinge_old)
+m[pm].blade_old_L, m[pm].blade_old_h= lib.region_mean_length_height(m[pm].blade_old)
+m[pm].hinge_seg_L, m[pm].hinge_seg_h= lib.region_mean_length_height(m[pm].region_cells('hinge'))
+m[pm].blade_seg_L, m[pm].blade_seg_h= lib.region_mean_length_height(m[pm].region_cells('blade'))
+
+m[pm].blade_piv, m[pm].hinge_piv= m[pm].load_PIV_whole_wing('blade_only'), m[pm].load_PIV_whole_wing('hinge_only')
+m[pm].hinge_piv_vxx= np.array(m[pm].hinge_piv.groupby('frame')['Vxx'].mean()*3600.)
+m[pm].hinge_piv_vyy= np.array(m[pm].hinge_piv.groupby('frame')['Vyy'].mean()*3600.)
+m[pm].blade_piv_vxx= np.array(m[pm].blade_piv.groupby('frame')['Vxx'].mean()*3600.)
+m[pm].blade_piv_vyy= np.array(m[pm].blade_piv.groupby('frame')['Vyy'].mean()*3600.)
+
+m[pm].blade_shear_data, m[pm].hinge_shear_data= m[pm].region_deform_tensor('blade'), m[pm].region_deform_tensor('hinge')
+m[pm].dt= m[pm].blade_shear_data['timeInt_sec']/3600.
+m[pm].blade_tracked_area, m[pm].hinge_tracked_area= lib.region_area(m[pm].region_cells('blade')), lib.region_area(m[pm].region_cells('hinge'))
+m[pm].vkk_blade= (np.array(m[pm].blade_tracked_area[1:])-np.array(m[pm].blade_tracked_area[:-1]))/m[pm].dt/np.array(m[pm].blade_tracked_area[:-1])
+m[pm].vkk_hinge= (np.array(m[pm].hinge_tracked_area[1:])-np.array(m[pm].hinge_tracked_area[:-1]))/m[pm].dt/np.array(m[pm].hinge_tracked_area[:-1])
+
+m[pm].hinge_tri_vxx= np.array(m[pm].hinge_shear_data['nu_xx'])/m[pm].dt+0.5*m[pm].vkk_hinge
+m[pm].hinge_tri_vyy= -(np.array(m[pm].hinge_shear_data['nu_xx'])/m[pm].dt-0.5*m[pm].vkk_hinge)
+m[pm].blade_tri_vxx= np.array(m[pm].blade_shear_data['nu_xx'])/m[pm].dt+0.5*m[pm].vkk_blade
+m[pm].blade_tri_vyy= -(np.array(m[pm].blade_shear_data['nu_xx'])/m[pm].dt-0.5*m[pm].vkk_blade)
+
+Nframes= len(m[pm].frames)-1
 plt.figure()
-plt.imshow(im)
-plt.scatter(central_hinge['center_x'],central_hinge['center_y'])
-plt.scatter(central_blade['center_x'],central_blade['center_y'], c='red')
-plt.show()
-frame= 100
-HBint= m.region_cells('HBinterface')
-im_path= DB_path+'/'+m.name+'/image_data/mutant/tag/segmentationData/frame'+fill_zeros(str(frame),4)+'/original_trafo.png'
-im= plt.imread(im_path)
-HBint_frame= HBint[HBint['frame']==frame]
-coeff= np.polyfit(np.array(HBint_frame['center_y']), np.array(HBint_frame['center_x']), 4)
-polynomial= np.poly1d(coeff)
-fit_y= np.linspace(200, 1450, 100)
-plt.figure()
-plt.imshow(im)
-plt.scatter(HBint_frame['center_x'], HBint_frame['center_y'])
-plt.plot(polynomial(fit_y), fit_y, color='red', linewidth=2)
-plt.show()
-
-show_region(m, [WT_hinge_fcy, WT_blade_fcy], 100)
-show_region(m, WT_blade_fcy, 100)
-show_region(m, m.region_cells('HBinterface'), 150)
-rc_list= [WT_hinge_fcy, WT_blade_fcy]
-for rc in rc_list:
-    print rc.columns
-
-el WT_blade_fcy['interface_x']
-df= pd.concat([WT_blade_fcy, WT_blade])
-df= df.reset_index(drop=True)
-df_gpby= df.groupby(list(df.columns))
-idx = [x[0] for x in df_gpby.groups.values() if len(x) == 1]
-df=df.reindex(idx)
-WT_blade_fcy
-show_region(m,[df],0)
-df_test= region_symmetric_difference(WT_blade_fcy, WT_blade)
-show_region(m,[df_test],0)
-
-difference_e= pd.concat([WT_hinge_fcy,WT_hinge])
-difference_hinge= difference_hinge.reset_index(drop=True)
-difference_hinge_gpby= difference_hinge.groupby(list(difference_hinge.columns))
-idx_hinge= [x[0] for x in df_gpby.groups.values() if len(x) == 1]
-difference_hinge= difference_hinge.reindex(idx)
-show_region(m,[difference_hinge],100)
-difference_hinge= pd.concat([WT_hinge_fcy,WT_hinge])
-difference_hinge= difference_hinge.reset_index(drop=True)
-difference_hinge_gpby= difference_hinge.groupby(list(difference_hinge.columns))
-idx_hinge= [x[0] for x in difference_hinge_gpby.groups.values() if len(x) == 1]
-difference_hinge= difference_hinge.reindex(idx_hinge)
-df_hinge= lib.region_symmetric_difference(WT_hinge_fcy, WT_hinge)
-df_blade= lib.region_symmetric_difference(WT_blade_fcy, m.region_cells('blade'))
-show_region(m,[df_blade],100)
-show_region(m, [difference_hinge], 0)
-WT_hinge_fcy.columns
-
-WT_hinge_fcy, WT_blade_fcy= m.fancy_hinge_blade()
-WT_hinge_fcy_L, WT_hinge_fcy_h= lib.region_mean_length_height(WT_hinge_fcy)
-WT_blade_fcy_L, WT_blade_fcy_h= lib.region_mean_length_height(WT_blade_fcy)
-
-WT_hinge, WT_blade= m.whole_hinge_blade()
-WT_hinge_L, WT_hinge_h= lib.region_mean_length_height(WT_hinge)
-WT_blade_L, WT_blade_h= lib.region_mean_length_height(WT_blade)
-
-WT_hinge_segmented_L, WT_hinge_segmented_h= lib.region_mean_length_height(m.region_cells('hinge'))
-WT_blade_segmented_L, WT_blade_segmented_h= lib.region_mean_length_height(m.region_cells('blade'))
-
-WT_blade_piv, WT_hinge_piv= m.load_PIV_whole_wing('blade_only'), m.load_PIV_whole_wing('hinge_only')
-WT_hinge_piv_vxx= np.array(WT_hinge_piv.groupby('frame')['Vxx'].mean()*3600.)
-WT_hinge_piv_vyy= np.array(WT_hinge_piv.groupby('frame')['Vyy'].mean()*3600.)
-WT_blade_piv_vxx= np.array(WT_blade_piv.groupby('frame')['Vxx'].mean()*3600.)
-WT_blade_piv_vyy= np.array(WT_blade_piv.groupby('frame')['Vyy'].mean()*3600.)
-
-WT_blade_shear_data, WT_hinge_shear_data= m.region_deform_tensor('blade'), m.region_deform_tensor('hinge')
-dt= WT_blade_shear_data['timeInt_sec']/3600.
-WT_blade_tracked_area, WT_hinge_tracked_area= lib.region_area(m.region_cells('blade')), lib.region_area(m.region_cells('hinge'))
-vkk_blade= (np.array(WT_blade_tracked_area[1:])-np.array(WT_blade_tracked_area[:-1]))/dt/np.array(WT_blade_tracked_area[:-1])
-vkk_hinge= (np.array(WT_hinge_tracked_area[1:])-np.array(WT_hinge_tracked_area[:-1]))/dt/np.array(WT_hinge_tracked_area[:-1])
-
-WT_hinge_tri_vxx= np.array(WT_hinge_shear_data['nu_xx'])/dt+0.5*vkk_hinge
-WT_hinge_tri_vyy= -(np.array(WT_hinge_shear_data['nu_xx'])/dt-0.5*vkk_hinge)
-WT_blade_tri_vxx= np.array(WT_blade_shear_data['nu_xx'])/dt+0.5*vkk_blade
-WT_blade_tri_vyy= -(np.array(WT_blade_shear_data['nu_xx'])/dt-0.5*vkk_blade)
-
-plt.figure()
-plt.plot(m.frames, WT_blade_h, label='height')
-plt.plot(m.frames[:209], 1450*np.exp(np.cumsum(WT_blade_piv_vyy[:209]*dt[:209])), label='piv')
-plt.plot(m.frames[:209], 1370*np.exp(np.cumsum(WT_blade_tri_vyy[:209]*dt[:209])), label='segmented')
-plt.plot(m.frames[:209], WT_blade_segmented_h[:209], label='segmented height')
-plt.plot(m.frames[:209], WT_blade_fcy_h[:209], label='fancy height')
+plt.plot(m[pm].frames[:Nframes], m[pm].blade_old_h[:Nframes], label='old height', linewidth=1.5)
+plt.plot(m[pm].frames[:Nframes], 1450*np.exp(np.cumsum(m[pm].blade_piv_vyy[:Nframes]*m[pm].dt[:Nframes])), '-',label='piv cum. shear', linewidth=1.5)
+plt.plot(m[pm].frames[:Nframes], 1370*np.exp(np.cumsum(m[pm].blade_tri_vyy[:Nframes]*m[pm].dt[:Nframes])), '-',label='seg cum. shear', linewidth=1.5)
+plt.plot(m[pm].frames[:Nframes], m[pm].blade_seg_h[:Nframes], label='seg height', linewidth=1.5)
+plt.plot(m[pm].frames[:Nframes], m[pm].blade_fcy_h[:Nframes], label='fcy height', linewidth=1.5)
 plt.legend(loc='best')
+plt.show()
+
+f, ((axWT, axDC),(axALC, axDLC))= plt.subplots(2,2)
+pm='WT'
+Nframes= len(m[pm].frames)-1
+axWT.set_title('wild type')
+axWT.plot(m[pm].frames[:Nframes], m[pm].hinge_old_h[:Nframes], label='old height', linewidth=1.5)
+axWT.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[:Nframes], label='seg height', linewidth=1.5)
+axWT.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[:Nframes], label='fcy height', linewidth=1.5)
+axWT.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[0]*np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='piv cum. shear', linewidth=1.5)
+axWT.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[0]*np.exp(np.cumsum(m[pm].hinge_tri_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='seg cum. shear', linewidth=1.5)
+axWT.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[0]*np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='piv cum. shear', linewidth=1.5)
+axWT.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[0]*np.exp(np.cumsum(m[pm].hinge_tri_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='seg cum. shear', linewidth=1.5)
+pm='DC'
+Nframes= len(m[pm].frames)-1
+axDC.set_title('distal cut')
+axDC.plot(m[pm].frames[:Nframes], m[pm].hinge_old_h[:Nframes], label='old height', linewidth=1.5)
+axDC.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[:Nframes], label='seg height', linewidth=1.5)
+axDC.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[:Nframes], label='fcy height', linewidth=1.5)
+axDC.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[0]*np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='piv cum. shear', linewidth=1.5)
+axDC.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[0]*np.exp(np.cumsum(m[pm].hinge_tri_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='seg cum. shear', linewidth=1.5)
+axDC.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[0]*np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='piv cum. shear', linewidth=1.5)
+axDC.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[0]*np.exp(np.cumsum(m[pm].hinge_tri_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='seg cum. shear', linewidth=1.5)
+pm='ALC'
+Nframes= len(m[pm].frames)-1
+axALC.set_title('ant link cut')
+axALC.plot(m[pm].frames[:Nframes], m[pm].hinge_old_h[:Nframes], label='old height', linewidth=1.5)
+axALC.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[:Nframes], label='seg height', linewidth=1.5)
+axALC.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[:Nframes], label='fcy height', linewidth=1.5)
+axALC.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[0]*np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='piv cum. shear', linewidth=1.5)
+axALC.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[0]*np.exp(np.cumsum(m[pm].hinge_tri_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='seg cum. shear', linewidth=1.5)
+axALC.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[0]*np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='piv cum. shear', linewidth=1.5)
+axALC.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[0]*np.exp(np.cumsum(m[pm].hinge_tri_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='seg cum. shear', linewidth=1.5)
+axALC.legend(loc='best', fontsize=6)
+pm='DLC'
+Nframes= len(m[pm].frames)-1
+axDLC.set_title('dist link cut')
+axDLC.plot(m[pm].frames[:Nframes], m[pm].hinge_old_h[:Nframes], label='old height', linewidth=1.5)
+axDLC.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[:Nframes], label='seg height', linewidth=1.5)
+axDLC.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[:Nframes], label='fcy height', linewidth=1.5)
+axDLC.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[0]*np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='piv cum. shear', linewidth=1.5)
+axDLC.plot(m[pm].frames[:Nframes], m[pm].hinge_seg_h[0]*np.exp(np.cumsum(m[pm].hinge_tri_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='seg cum. shear', linewidth=1.5)
+axDLC.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[0]*np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='piv cum. shear', linewidth=1.5)
+axDLC.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[0]*np.exp(np.cumsum(m[pm].hinge_tri_vyy[:Nframes]*m[pm].dt[:Nframes])), '--',label='seg cum. shear', linewidth=1.5)
+plt.tight_layout()
+plt.savefig('figures/hinge_height_plot.png', dpi=2000)
 plt.show()
 
 plt.figure()
