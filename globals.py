@@ -13,133 +13,113 @@ from PyQt4 import QtGui
 
 import lib
 
-def fill_zeros(s,n):
-    while len(s) < n:
-        s= ''.join(('0',s))
-    return s
 
-global Path
-Path= '/data/biophys/etournay/'
-global DB_path
-DB_path= Path+'DB/'
-movie_list= os.listdir(DB_path)
-movie_list=['WT_25deg_111102',
-            'WT_25deg_111103',
-            'WT_25deg_120531',
-            'WT_25-30deg_130921',
-            'WT_25-30deg_130926',
-            'MTdp_25deg_140222',
-            'WT_sevBdist-25deg_130131',
-            'WT_severedHB-25deg_130107',
-            'WT_severedHBdist-25deg_130110',
-            'WT_antLinkCut-25deg_131227',
-            'HTcdc2_25-30deg_130924',
-            'HTcdc2_25-30deg_130927',
-            'HTcdc2_25-30deg_130925',
-            'MTcdc2_25-30deg_130919',
-            'MTcdc2_25-30deg_130917',
-            'MTcdc2_25-30deg_130916',
-            'MTcdc2_25deg_130930',
-            'MTcdc2_25deg_130905']
-
-class Movie:
-    def __init__(self, name):
-        self.name= name
-        self.con= lite.connect(DB_path+name+'/'+name+'.sqlite')
-        self.cells_loaded= False
-        self.cellinfo_loaded= False
-        self.dbonds_loaded= False
-        self.Ta_t_loaded= False
-        self.triList_loaded= False
-        self.roiBT_loaded= False
-    def load_cells(self):
-        if self.cells_loaded == False:
-            print('Loading cells from database...')
-            self.cells= psql.read_sql('SELECT * FROM cells WHERE cell_id > 10000;', self.con)
-            self.cells_loaded= True
-            self.frames= sorted(self.cells['frame'].unique())
-    def load_cellinfo(self):
-        if self.cellinfo_loaded == False:
-            print('Loading cellinfo from database...')
-            self.cellinfo= psql.read_sql('SELECT * FROM cellinfo WHERE cell_id > 10000;', self.con)
-            self.cellinfo_loaded= True
-    def load_Ta_t(self):
-        if self.Ta_t_loaded == False:
-            print('Loading Ta_t...')
-            if not os.path.isfile(DB_path+self.name+'/shear_contrib/Ta_t.csv'):
-                print('Converting .RData to .csv...')
-                ro.r('load("'+DB_path+self.name+'/shear_contrib/Ta_t.RData")')
-                ro.r('write.csv(triList, "'+DB_path+self.name+'/shear_contrib/Ta_t.csv")')
-                print('Converted!')
-            self.Ta_t= pd.read_csv(DB_path+self.name+'/shear_contrib/Ta_t.csv')
-            self.Ta_t_loaded= True
-            del self.Ta_t[self.Ta_t.columns[0]]
-    def load_roiBT(self):
-        if self.roiBT_loaded == False:
-            print('Loading roiBT ...')
-            if not os.path.isfile(DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv'):
-                print('Converting .RData to .csv...')
-                ro.r('load("'+DB_path+self.name+'/roi_bt/lgRoiSmoothed.RData")')
-                ro.r('write.csv(lgRoiSmoothed, "'+DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv")')
-                print('Converted!')
-            self.roiBT= pd.read_csv(DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv')
-            self.roiBT_loaded= True
-            self.regions= self.roiBT['roi'].unique()
-    def load_triList(self):
-        if self.triList_loaded == False:
-            print('Loading triList...')
-            if not os.path.isfile(DB_path+self.name+'/shear_contrib/triList.csv'):
-                print('Converting .RData to .csv...')
-                ro.r('load("'+DB_path+self.name+'/shear_contrib/triList.RData")')
-                ro.r('write.csv(triList, "'+DB_path+self.name+'/shear_contrib/triList.csv")')
-                print('Converted!')
-            self.triList= pd.read_csv(DB_path+self.name+'/shear_contrib/triList.csv')
-            self.triList_loaded= True
-            del self.triList[self.triList.columns[0]]
-    def region_cells(self, roi_name):
-        self.load_cells()
-        self.load_roiBT()
-        if roi_name not in self.regions:
-            raise Exception('Region '+roi_name+' is not defined in this movie!')
-        else:
-            return self.cells[self.cells['cell_id'].isin(self.roiBT[self.roiBT['roi']==roi_name]['cell_id'])]
-    def region_deform_tensor(self, roi_name):
-        if 'avgDeformTensorsWide.tsv' in os.listdir(DB_path+self.name+'/shear_contrib/'+roi_name):
-            df_DB_shear= pp.read_csv(DB_path+self.name+'/shear_contrib/'+roi_name+'/avgDeformTensorsWide.tsv', sep='\t')
-        else:
-            ro.r('load("'+DB_path+self.name+'/shear_contrib/'+roi_name+'/avgDeformTensorsWide.RData")')
-            df_DB_shear= com.load_data('avgDeformTensorsWide')
-        return df_DB_shear
-    def load_PIV_whole_wing(self, piv_region):
-        if not os.path.exists(Path+'PIV/'+self.name):
-            print('PIV does not exists for '+self.name)
-        else:
-            return pp.read_csv(Path+'PIV/'+self.name+'/Segmentation/rotated_pivData_'+piv_region+'.csv')
+#m_WT= Movie('WT_25deg_111103')
+m= lib.Movie('WT_sevBdist-25deg_130131')
+m_AlC= lib.Movie('WT_antLinkCut-25deg_131227')
+m_DC= lib.Movie('WT_sevBdist-25deg_130131')
+m_DlC= lib.Movie('WT_distLinkCut-25deg_131226')
 
 
+plt.figure()
+plt.imshow(im)
+plt.scatter(central_hinge['center_x'],central_hinge['center_y'])
+plt.scatter(central_blade['center_x'],central_blade['center_y'], c='red')
+plt.show()
+frame= 100
+HBint= m.region_cells('HBinterface')
+im_path= DB_path+'/'+m.name+'/image_data/mutant/tag/segmentationData/frame'+fill_zeros(str(frame),4)+'/original_trafo.png'
+im= plt.imread(im_path)
+HBint_frame= HBint[HBint['frame']==frame]
+coeff= np.polyfit(np.array(HBint_frame['center_y']), np.array(HBint_frame['center_x']), 4)
+polynomial= np.poly1d(coeff)
+fit_y= np.linspace(200, 1450, 100)
+plt.figure()
+plt.imshow(im)
+plt.scatter(HBint_frame['center_x'], HBint_frame['center_y'])
+plt.plot(polynomial(fit_y), fit_y, color='red', linewidth=2)
+plt.show()
 
-m_WT= Movie('WT_25deg_111103')
-m_AlC= Movie('WT_antLinkCut-25deg_131227')
-m_DC= Movie('WT_sevBdist-25deg_130131')
-m_DlC= Movie('WT_distLinkCut-25deg_131226')
+show_region(m, [WT_hinge_fcy, WT_blade_fcy], 100)
+show_region(m, WT_blade_fcy, 100)
+show_region(m, m.region_cells('HBinterface'), 150)
+rc_list= [WT_hinge_fcy, WT_blade_fcy]
+for rc in rc_list:
+    print rc.columns
 
-movies= [m_WT, m_AlC, m_DC, m_DlC]
-blade_piv= m_DC.load_PIV_whole_wing('blade_only')
-hinge_piv= m_DC.load_PIV_whole_wing('hinge_only')
+el WT_blade_fcy['interface_x']
+df= pd.concat([WT_blade_fcy, WT_blade])
+df= df.reset_index(drop=True)
+df_gpby= df.groupby(list(df.columns))
+idx = [x[0] for x in df_gpby.groups.values() if len(x) == 1]
+df=df.reindex(idx)
+WT_blade_fcy
+show_region(m,[df],0)
+df_test= region_symmetric_difference(WT_blade_fcy, WT_blade)
+show_region(m,[df_test],0)
 
-ww= m_DlC.region_cells('whole_wing')
-HBint= m_DlC.region_cells('HBinterface')
-HB_x= [HBint[HBint['frame']==f]['center_x'].mean() for f in m.frames]
-ww_hinge= pd.DataFrame()
-ww_blade= pd.DataFrame()
-for frame in m_DlC.frames:
-    print frame
-    ww_frame= ww[ww['frame']==frame]
-    ww_hinge= ww_hinge.append(ww_frame[ww_frame['center_x']<HB_x[frame]])
-    ww_blade= ww_blade.append(ww_frame[ww_frame['center_x']>HB_x[frame]])
+difference_e= pd.concat([WT_hinge_fcy,WT_hinge])
+difference_hinge= difference_hinge.reset_index(drop=True)
+difference_hinge_gpby= difference_hinge.groupby(list(difference_hinge.columns))
+idx_hinge= [x[0] for x in df_gpby.groups.values() if len(x) == 1]
+difference_hinge= difference_hinge.reindex(idx)
+show_region(m,[difference_hinge],100)
+difference_hinge= pd.concat([WT_hinge_fcy,WT_hinge])
+difference_hinge= difference_hinge.reset_index(drop=True)
+difference_hinge_gpby= difference_hinge.groupby(list(difference_hinge.columns))
+idx_hinge= [x[0] for x in difference_hinge_gpby.groups.values() if len(x) == 1]
+difference_hinge= difference_hinge.reindex(idx_hinge)
+df_hinge= lib.region_symmetric_difference(WT_hinge_fcy, WT_hinge)
+df_blade= lib.region_symmetric_difference(WT_blade_fcy, m.region_cells('blade'))
+show_region(m,[df_blade],100)
+show_region(m, [difference_hinge], 0)
+WT_hinge_fcy.columns
 
-Q1_hinge, Q2_hinge, s_hinge= m_DlC.region_shape_nematic(ww_hinge)
-Q1_blade, Q2_blade, s_blade= m_DlC.region_shape_nematic(ww_blade)
+WT_hinge_fcy, WT_blade_fcy= m.fancy_hinge_blade()
+WT_hinge_fcy_L, WT_hinge_fcy_h= lib.region_mean_length_height(WT_hinge_fcy)
+WT_blade_fcy_L, WT_blade_fcy_h= lib.region_mean_length_height(WT_blade_fcy)
+
+WT_hinge, WT_blade= m.whole_hinge_blade()
+WT_hinge_L, WT_hinge_h= lib.region_mean_length_height(WT_hinge)
+WT_blade_L, WT_blade_h= lib.region_mean_length_height(WT_blade)
+
+WT_hinge_segmented_L, WT_hinge_segmented_h= lib.region_mean_length_height(m.region_cells('hinge'))
+WT_blade_segmented_L, WT_blade_segmented_h= lib.region_mean_length_height(m.region_cells('blade'))
+
+WT_blade_piv, WT_hinge_piv= m.load_PIV_whole_wing('blade_only'), m.load_PIV_whole_wing('hinge_only')
+WT_hinge_piv_vxx= np.array(WT_hinge_piv.groupby('frame')['Vxx'].mean()*3600.)
+WT_hinge_piv_vyy= np.array(WT_hinge_piv.groupby('frame')['Vyy'].mean()*3600.)
+WT_blade_piv_vxx= np.array(WT_blade_piv.groupby('frame')['Vxx'].mean()*3600.)
+WT_blade_piv_vyy= np.array(WT_blade_piv.groupby('frame')['Vyy'].mean()*3600.)
+
+WT_blade_shear_data, WT_hinge_shear_data= m.region_deform_tensor('blade'), m.region_deform_tensor('hinge')
+dt= WT_blade_shear_data['timeInt_sec']/3600.
+WT_blade_tracked_area, WT_hinge_tracked_area= lib.region_area(m.region_cells('blade')), lib.region_area(m.region_cells('hinge'))
+vkk_blade= (np.array(WT_blade_tracked_area[1:])-np.array(WT_blade_tracked_area[:-1]))/dt/np.array(WT_blade_tracked_area[:-1])
+vkk_hinge= (np.array(WT_hinge_tracked_area[1:])-np.array(WT_hinge_tracked_area[:-1]))/dt/np.array(WT_hinge_tracked_area[:-1])
+
+WT_hinge_tri_vxx= np.array(WT_hinge_shear_data['nu_xx'])/dt+0.5*vkk_hinge
+WT_hinge_tri_vyy= -(np.array(WT_hinge_shear_data['nu_xx'])/dt-0.5*vkk_hinge)
+WT_blade_tri_vxx= np.array(WT_blade_shear_data['nu_xx'])/dt+0.5*vkk_blade
+WT_blade_tri_vyy= -(np.array(WT_blade_shear_data['nu_xx'])/dt-0.5*vkk_blade)
+
+plt.figure()
+plt.plot(m.frames, WT_blade_h, label='height')
+plt.plot(m.frames[:209], 1450*np.exp(np.cumsum(WT_blade_piv_vyy[:209]*dt[:209])), label='piv')
+plt.plot(m.frames[:209], 1370*np.exp(np.cumsum(WT_blade_tri_vyy[:209]*dt[:209])), label='segmented')
+plt.plot(m.frames[:209], WT_blade_segmented_h[:209], label='segmented height')
+plt.plot(m.frames[:209], WT_blade_fcy_h[:209], label='fancy height')
+plt.legend(loc='best')
+plt.show()
+
+plt.figure()
+plt.plot(m.frames, WT_hinge_fcy_h)
+plt.show()
+len(dt)
+len(WT_blade_piv_vxx)
+
+Q1_hinge, Q2_hinge, s_hinge= lib.region_shape_nematic(ww_hinge)
+Q1_blade, Q2_blade, s_blade= lib.region_shape_nematic(ww_blade)
 area_hinge= m_DlC.region_area(ww_hinge)
 area_blade= m_DlC.region_area(ww_blade)
 L_hinge, h_hinge= np.sqrt(area_hinge)*np.exp(0.5*Q1_hinge), np.sqrt(area_hinge)*np.exp(-0.5*Q1_hinge)
