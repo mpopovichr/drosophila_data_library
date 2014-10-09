@@ -12,8 +12,8 @@ import os.path
 from PyQt4 import QtGui
 
 global Path
-#Path= '/data/biophys/etournay/'
-Path= '/Users/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/'
+Path= '/data/biophys/etournay/'
+#Path= '/Users/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/'
 global DB_path
 DB_path= Path+'DB/'
 
@@ -24,6 +24,16 @@ def fill_zeros(s,n):
 def region_area(rc):
     frames= sorted(rc['frame'].unique())
     return np.array([np.sum(rc[rc['frame']==f]['area']) for f in frames])
+def region_cells_area_avg(rc):
+    frames= sorted(rc['frame'].unique())
+    return np.array([rc[rc['frame']==f]['area'].mean() for f in frames])
+def region_cells_shape_avg(rc):
+    frames= sorted(rc['frame'].unique())
+    Q_xx= np.array([rc[rc['frame']==f]['elong_xx'].mean() for f in frames])
+    Q_xy= np.array([rc[rc['frame']==f]['elong_xy'].mean() for f in frames])
+    rc['Q']= np.sqrt(rc['elong_xx']**2 + rc['elong_xy']**2)
+    Q= np.array([rc[rc['frame']==f]['Q'].mean() for f in frames])
+    return Q_xx, Q_xy, Q
 def region_shape_nematic( rc):
     frames= sorted(rc['frame'].unique())
     av_x= np.array([np.sum(rc[rc['frame']==f]['center_x']*rc[rc['frame']==f]['area']) for f in frames])
@@ -89,6 +99,7 @@ def quick_plot(data):
     for d in data:
         plt.plot(d)
     plt.show()
+
 
 square_difference([0,1,2], [1,2,4])
 

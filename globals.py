@@ -14,10 +14,226 @@ from scipy import optimize
 
 import lib
 
+##### AREA ELONGATION CORRELATION PLOT AND MOVIE ######################
+
+
+
+###### AREA ELONGATION CORRELATION ANALYSIS ##############################
+
+m= {}
+
+name_list= ['WT_25deg_111102',
+            'WT_25deg_111103',
+            'WT_25deg_120531',
+            'WT_25-30deg_130921',
+            'MTdp_25deg_140222',
+            'WT_sevBdist-25deg_130131',
+            'WT_antLinkCut-25deg_131227',
+            'HTcdc2_25-30deg_130927',
+            'MTcdc2_25-30deg_130919',
+            'MTcdc2_25-30deg_130917',
+            'MTcdc2_25-30deg_130916',
+            'MTcdc2_25deg_130905']
+
+for name in name_list:
+    m[name]= lib.Movie(name)
+    m[name].cell_area_avg= {}
+    m[name].Qxx_avg, m[name].Qxy_avg, m[name].Q_avg= {}, {} ,{}
+
+for name in name_list:
+    print name
+    m[name].load_roiBT()
+    for region in m[name].regions:
+        print region
+        m[name].cell_area_avg[region]= lib.region_cells_area_avg(m[name].region_cells(region))
+        m[name].Qxx_avg[region], m[name].Qxy_avg[region], m[name].Q_avg[region]= lib.region_cells_shape_avg(m[name].region_cells(region))
+
+global ref_cell_area
+ref_cell_area= m['WT_25deg_111103'].cell_area_avg['blade'][-1]
+print('Done!')
+
+markers = ['o','v','^','D','s']
+for region in m['WT_25deg_111102'].regions:
+    print region
+    plt.figure()
+    color_count= 0
+    for name in name_list:
+        if region in m[name].regions:
+            color_frac= 1.0*color_count/len(name_list)
+            color_count +=1
+            plt.scatter(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area), m[name].Qxx_avg[region][-1],c=plt.cm.hsv(color_frac), s=50, label=name, marker= markers[np.mod(color_count,5)])
+    plt.xlabel('Q_xx+Q_yy')
+    plt.ylabel('(Q_xx-Q_yy)/2')
+    plt.title(region)
+    plt.legend(loc=4, fontsize=6)
+    plt.savefig('figures/area_elongation_'+region+'_Q_xx-Q_yy.pdf')
+    plt.close()
+
+markers = ['o','v','^','D','s']
+for region in m['WT_25deg_111102'].regions:
+    print region
+    plt.figure()
+    color_count= 0
+    for name in name_list:
+        if region in m[name].regions:
+            color_frac= 1.0*color_count/len(name_list)
+            color_count +=1
+            plt.scatter(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area), m[name].Q_avg[region][-1],c=plt.cm.hsv(color_frac), s=50, label=name, marker= markers[np.mod(color_count,5)])
+    plt.xlabel('Q_xx+Q_yy')
+    plt.ylabel('|Q|')
+    plt.title(region)
+    plt.legend(loc=4, fontsize=6)
+    plt.savefig('figures/area_elongation_'+region+'_Q.pdf')
+    plt.close()
+
+
+markers = ['o','v','^','D','s']
+linestyles= ['-','--', '-.', ':']
+plt.figure()
+color_count= 0
+for region in m['WT_25deg_111102'].regions:
+    print region
+    color_frac= 1.0*color_count/len(name_list)
+    color_count +=1
+    x,y = [], []
+    for name in name_list:
+        if region in m[name].regions:
+            x.append(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area))
+            y.append(m[name].Qxx_avg[region][-1])
+    coeff= np.polyfit(x,y,1)
+    fit_x= np.linspace(-1, 1, 100)
+    pol= np.poly1d(coeff)
+    plt.plot(fit_x, pol(fit_x), c=plt.cm.hsv(color_frac), label= region+': '+"{:.4f}".format(coeff[0]), ls= linestyles[np.mod(color_count,4)])
+plt.xlabel('Q_xx+Q_yy')
+plt.ylabel('(Q_xx-Q_yy)/2')
+plt.title('all')
+plt.legend(loc=2, fontsize=6)
+plt.savefig('figures/area_elongation_all_by_region_Q_xx-Q_yy.pdf')
+plt.close()
+
+markers = ['o','v','^','D','s']
+linestyles= ['-','--', '-.', ':']
+plt.figure()
+color_count= 0
+for region in m['WT_25deg_111102'].regions:
+    print region
+    color_frac= 1.0*color_count/len(name_list)
+    color_count +=1
+    x,y = [], []
+    for name in name_list:
+        if region in m[name].regions:
+            x.append(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area))
+            y.append(m[name].Q_avg[region][-1])
+    coeff= np.polyfit(x,y,1)
+    fit_x= np.linspace(-1, 1, 100)
+    pol= np.poly1d(coeff)
+    plt.plot(fit_x, pol(fit_x), c=plt.cm.hsv(color_frac), label= region, ls= linestyles[np.mod(color_count,4)])
+plt.xlabel('Q_xx+Q_yy')
+plt.ylabel('|Q|')
+plt.title('all')
+plt.legend(loc=2, fontsize=6)
+plt.savefig('figures/area_elongation_all_by_region_Q.pdf')
+plt.close()
+
+markers = ['o','v','^','D','s']
+for name in name_list:
+    print name
+    plt.figure()
+    color_count= 0
+    for region in m[name].regions:
+        color_frac= 1.0*color_count/len(m[name].regions)
+        color_count +=1
+        plt.scatter(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area), m[name].Qxx_avg[region][-1],c=plt.cm.hsv(color_frac), s=50, label=region, marker= markers[np.mod(color_count,5)])
+    plt.xlabel('Q_xx+Q_yy')
+    plt.ylabel('(Q_xx-Q_yy)/2')
+    plt.title(region)
+    plt.legend(loc=4, fontsize=6)
+    plt.savefig('figures/area_elongation_'+name+'_Q_xx-Q_yy.pdf')
+    plt.close()
+
+linestyles= ['-','--', '-.', ':']
+plt.figure()
+color_count= 0
+for name in name_list:
+    print name
+    color_frac= 1.0*color_count/len(name_list)
+    color_count +=1
+    x,y = [], []
+    for region in m[name].regions:
+        x.append(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area))
+        y.append(m[name].Qxx_avg[region][-1])
+    coeff= np.polyfit(x,y,1)
+    fit_x= np.linspace(-1, 1, 100)
+    pol= np.poly1d(coeff)
+    plt.plot(fit_x, pol(fit_x), c=plt.cm.hsv(color_frac), label= name+': '+"{:.4f}".format(coeff[0]), ls= linestyles[np.mod(color_count,4)])
+plt.xlabel('Q_xx+Q_yy')
+plt.ylabel('(Q_xx-Q_yy)/2')
+plt.title('all')
+plt.legend(loc=2, fontsize=6)
+plt.savefig('figures/area_elongation_all_by_movie_Q_xx-Q_yy.pdf')
+plt.close()
+
+x,y= [], []
+for name in name_list:
+    for region in m[name].regions:
+        x.append(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area))
+        y.append(m[name].Qxx_avg[region][-1])
+plt.scatter(x,y)
+coeff= np.polyfit(x,y,1)
+fit_x= np.linspace(-1, 1, 100)
+pol= np.poly1d(coeff)
+plt.plot(fit_x, pol(fit_x), c='red', label= name)
+plt.xlabel('Q_xx+Q_yy')
+plt.ylabel('(Q_xx-Q_yy)/2')
+plt.title('all')
+plt.savefig('figures/area_elongation_all_together_fit_Q_xx-Q_yy.pdf')
+plt.close()
+plt.show()
+
+name= 'WT_25deg_111103'
+region= 'blade'
+for region in m[name].regions:
+    print region
+    cells= m[name].region_cells(region)
+    last_cells= cells[cells['frame']==m[name].frames[-1]]
+    x= np.log(np.array(last_cells['area'])/ref_cell_area)
+    y= np.array(last_cells['elong_xx'])
+    plt.figure()
+    plt.scatter(x,y, linewidths=0)
+    coeff= np.polyfit(x,y,1)
+    fit_x= np.linspace(-1, 1, 100)
+    pol= np.poly1d(coeff)
+    plt.plot(fit_x, pol(fit_x), c='red', label= name, linewidth=2)
+    plt.title(region)
+    plt.savefig('figures/area_elongation_individual_cells_'+name+'_'+region+'_Q_xx-Q_yy.pdf')
+    plt.close()
+
+name= 'WT_25deg_111103'
+region= 'blade'
+for region in m[name].regions:
+    print region
+    cells= m[name].region_cells(region)
+    last_cells= cells[cells['frame']==m[name].frames[-1]]
+    x= np.log(np.array(last_cells['area'])/ref_cell_area)
+    y1= np.array(last_cells['elong_xx'])
+    y2= np.array(last_cells['elong_xy'])
+    y= np.sqrt(y1**2+y2**2)
+    plt.figure()
+    plt.scatter(x,y, linewidths=0)
+    coeff= np.polyfit(x,y,1)
+    fit_x= np.linspace(-1, 1, 100)
+    pol= np.poly1d(coeff)
+    plt.plot(fit_x, pol(fit_x), c='red', label= name, linewidth=2)
+    plt.title(region)
+    plt.savefig('figures/area_elongation_individual_cells_'+name+'_'+region+'_Q.pdf')
+    plt.close()
+
+
+## SHEAR CORRECTED DIMENSIONS##############
+
 m= {}
 m['WT']= lib.Movie('WT_25deg_111103')
 m['ALC']= lib.Movie('WT_antLinkCut-25deg_131227')
-#m['DC']= lib.Movie('WT_sevBdist-25deg_130131')
 m['DLC']= lib.Movie('WT_distLinkCut-25deg_131226')
 
 pm= 'DLC'
@@ -53,31 +269,30 @@ m[pm].blade_tri_vyy= -(np.array(m[pm].blade_shear_data['nu_xx'])/m[pm].dt-0.5*m[
 
 print('Done!')
 
-pm='WT'
+#pm='WT'
 Nframes= len(m[pm].frames)-1
 m[pm].hinge_shear_h= np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
 m[pm].hinge_shear_L= np.exp(np.cumsum(m[pm].hinge_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
 m[pm].blade_shear_h= np.exp(np.cumsum(m[pm].blade_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
 m[pm].blade_shear_L= np.exp(np.cumsum(m[pm].blade_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
 
+
+pm= 'WT'
 def scaling_func(beta):
-    return square_difference(beta*m[pm].hinge_shear_h[78:], m[pm].hinge_fcy_h[78:-1])
+    return lib.square_difference(beta*m[pm].hinge_shear_h[78:], m[pm].hinge_fcy_h[78:-1])
 m[pm].beta_hinge_h= optimize.anneal(scaling_func, m[pm].hinge_fcy_h[0])[0]
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].hinge_shear_L[78:], m[pm].hinge_fcy_L[78:-1])
+    return lib.square_difference(beta*m[pm].hinge_shear_L[78:], m[pm].hinge_fcy_L[78:-1])
 m[pm].beta_hinge_L= optimize.anneal(scaling_func, m[pm].hinge_fcy_L[0])[0]
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].blade_shear_h[78:], m[pm].blade_fcy_h[78:-1])
+    return lib.square_difference(beta*m[pm].blade_shear_h[78:], m[pm].blade_fcy_h[78:-1])
 m[pm].beta_blade_h= optimize.anneal(scaling_func, m[pm].blade_fcy_h[0])[0]
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].blade_shear_L[78:], m[pm].blade_fcy_L[78:-1])
+    return lib.square_difference(beta*m[pm].blade_shear_L[78:], m[pm].blade_fcy_L[78:-1])
 m[pm].beta_blade_L= optimize.anneal(scaling_func, m[pm].blade_fcy_L[0])[0]
-
-
-
 
 
 pm= 'ALC'
@@ -88,19 +303,19 @@ m[pm].blade_shear_h= np.exp(np.cumsum(m[pm].blade_piv_vyy[:Nframes]*m[pm].dt[:Nf
 m[pm].blade_shear_L= np.exp(np.cumsum(m[pm].blade_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].hinge_shear_h, m[pm].hinge_fcy_h[:-1])
+    return lib.square_difference(beta*m[pm].hinge_shear_h, m[pm].hinge_fcy_h[:-1])
 m[pm].beta_hinge_h= optimize.anneal(scaling_func, m[pm].hinge_fcy_h[0])[0]
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].hinge_shear_L, m[pm].hinge_fcy_L[:-1])
+    return lib.square_difference(beta*m[pm].hinge_shear_L, m[pm].hinge_fcy_L[:-1])
 m[pm].beta_hinge_L= optimize.anneal(scaling_func, m[pm].hinge_fcy_L[0])[0]
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].blade_shear_h, m[pm].blade_fcy_h[:-1])
+    return lib.square_difference(beta*m[pm].blade_shear_h, m[pm].blade_fcy_h[:-1])
 m[pm].beta_blade_h= optimize.anneal(scaling_func, m[pm].blade_fcy_h[0])[0]
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].blade_shear_L, m[pm].blade_fcy_L[:-1])
+    return lib.square_difference(beta*m[pm].blade_shear_L, m[pm].blade_fcy_L[:-1])
 m[pm].beta_blade_L= optimize.anneal(scaling_func, m[pm].blade_fcy_L[0])[0]
 
 
@@ -112,19 +327,19 @@ m[pm].blade_shear_h= np.exp(np.cumsum(m[pm].blade_piv_vyy[:Nframes]*m[pm].dt[:Nf
 m[pm].blade_shear_L= np.exp(np.cumsum(m[pm].blade_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].hinge_shear_h, m[pm].hinge_fcy_h[:-1])
+    return lib.square_difference(beta*m[pm].hinge_shear_h, m[pm].hinge_fcy_h[:-1])
 m[pm].beta_hinge_h= optimize.anneal(scaling_func, m[pm].hinge_fcy_h[0])[0]
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].hinge_shear_L, m[pm].hinge_fcy_L[:-1])
+    return lib.square_difference(beta*m[pm].hinge_shear_L, m[pm].hinge_fcy_L[:-1])
 m[pm].beta_hinge_L= optimize.anneal(scaling_func, m[pm].hinge_fcy_L[0])[0]
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].blade_shear_h, m[pm].blade_fcy_h[:-1])
+    return lib.square_difference(beta*m[pm].blade_shear_h, m[pm].blade_fcy_h[:-1])
 m[pm].beta_blade_h= optimize.anneal(scaling_func, m[pm].blade_fcy_h[0])[0]
 
 def scaling_func(beta):
-    return square_difference(beta*m[pm].blade_shear_L, m[pm].blade_fcy_L[:-1])
+    return lib.square_difference(beta*m[pm].blade_shear_L, m[pm].blade_fcy_L[:-1])
 m[pm].beta_blade_L= optimize.anneal(scaling_func, m[pm].blade_fcy_L[0])[0]
 
 
@@ -164,11 +379,23 @@ f.tight_layout()
 plt.savefig('figures/cumulative_piv_shear_fitted_after_22.png', dpi=1000)
 plt.show()
 
+df_otp= pd.DataFrame()
+df_otp['WT_blade_shear_h']= m['WT'].beta_blade_h*m['WT'].blade_shear_h
+df_otp['ALC_blade_shear_h']= m['ALC'].beta_blade_h*m['ALC'].blade_shear_h
+df_otp['DLC_blade_shear_h']= m['DLC'].beta_blade_h*m['DLC'].blade_shear_h
+df_otp['WT_hinge_shear_h']= m['WT'].beta_hinge_h*m['WT'].hinge_shear_h
+df_otp['ALC_hinge_shear_h']= m['ALC'].beta_hinge_h*m['ALC'].hinge_shear_h
+df_otp['DLC_hinge_shear_h']= m['DLC'].beta_hinge_h*m['DLC'].hinge_shear_h
+df_otp['WT_blade_shear_L']= m['WT'].beta_blade_L*m['WT'].blade_shear_L
+df_otp['ALC_blade_shear_L']= m['ALC'].beta_blade_L*m['ALC'].blade_shear_L
+df_otp['DLC_blade_shear_L']= m['DLC'].beta_blade_L*m['DLC'].blade_shear_L
+df_otp['WT_hinge_shear_L']= m['WT'].beta_hinge_L*m['WT'].hinge_shear_L
+df_otp['ALC_hinge_shear_L']= m['ALC'].beta_hinge_L*m['ALC'].hinge_shear_L
+df_otp['DLC_hinge_shear_L']= m['DLC'].beta_hinge_L*m['DLC'].hinge_shear_L
 
-plt.figure()
-plt.plot(np.array(m['ALC'].frames[:-1]), m['ALC'].beta_hinge_h*m['ALC'].hinge_shear_h)
-plt.plot(m['ALC'].frames[:-1], m['ALC'].hinge_fcy_h[:-1])
-plt.show()
+df_otp.to_csv('height_length_data/shear_corrected_dimensions.csv')
+
+#### END SHEAR CORRECTED DIMENSIONS ##############################
 
 
 
@@ -306,7 +533,7 @@ plt.plot(time[:230], L_blade[:230]*h_blade[:230], label='area')
 plt.legend(loc='best')
 plt.show()
 
-
+m['WT'].regions
 
 
 print m.region_cells('blade').columns
