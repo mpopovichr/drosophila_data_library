@@ -12,8 +12,8 @@ import os.path
 from PyQt4 import QtGui
 
 global Path
-Path= '/data/biophys/etournay/'
-#Path= '/Users/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/'
+#Path= '/data/biophys/etournay/'
+Path= '/Users/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/'
 global DB_path
 DB_path= Path+'DB/'
 
@@ -82,6 +82,15 @@ def film_region(m, rc, dir_name):
         plt.tight_layout()
         plt.savefig(dir_name+'/frame'+fill_zeros(str(frame),4)+'.png')
         plt.close()
+def square_difference(a, b):
+    return np.sqrt(np.sum((np.array(a)-np.array(b))**2))
+def quick_plot(data):
+    plt.figure()
+    for d in data:
+        plt.plot(d)
+    plt.show()
+
+square_difference([0,1,2], [1,2,4])
 
 class Movie:
     def __init__(self, name):

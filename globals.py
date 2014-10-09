@@ -10,13 +10,14 @@ import rpy2.robjects as ro
 import pandas.rpy.common as com
 import os.path
 from PyQt4 import QtGui
+from scipy import optimize
 
 import lib
 
 m= {}
 m['WT']= lib.Movie('WT_25deg_111103')
 m['ALC']= lib.Movie('WT_antLinkCut-25deg_131227')
-m['DC']= lib.Movie('WT_sevBdist-25deg_130131')
+#m['DC']= lib.Movie('WT_sevBdist-25deg_130131')
 m['DLC']= lib.Movie('WT_distLinkCut-25deg_131226')
 
 pm= 'DLC'
@@ -30,6 +31,8 @@ m[pm].hinge_old_L, m[pm].hinge_old_h= lib.region_mean_length_height(m[pm].hinge_
 m[pm].blade_old_L, m[pm].blade_old_h= lib.region_mean_length_height(m[pm].blade_old)
 m[pm].hinge_seg_L, m[pm].hinge_seg_h= lib.region_mean_length_height(m[pm].region_cells('hinge'))
 m[pm].blade_seg_L, m[pm].blade_seg_h= lib.region_mean_length_height(m[pm].region_cells('blade'))
+
+print('Done!')
 
 m[pm].blade_piv, m[pm].hinge_piv= m[pm].load_PIV_whole_wing('blade_only'), m[pm].load_PIV_whole_wing('hinge_only')
 m[pm].hinge_piv_vxx= np.array(m[pm].hinge_piv.groupby('frame')['Vxx'].mean()*3600.)
@@ -47,6 +50,128 @@ m[pm].hinge_tri_vxx= np.array(m[pm].hinge_shear_data['nu_xx'])/m[pm].dt+0.5*m[pm
 m[pm].hinge_tri_vyy= -(np.array(m[pm].hinge_shear_data['nu_xx'])/m[pm].dt-0.5*m[pm].vkk_hinge)
 m[pm].blade_tri_vxx= np.array(m[pm].blade_shear_data['nu_xx'])/m[pm].dt+0.5*m[pm].vkk_blade
 m[pm].blade_tri_vyy= -(np.array(m[pm].blade_shear_data['nu_xx'])/m[pm].dt-0.5*m[pm].vkk_blade)
+
+print('Done!')
+
+pm='WT'
+Nframes= len(m[pm].frames)-1
+m[pm].hinge_shear_h= np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].hinge_shear_L= np.exp(np.cumsum(m[pm].hinge_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].blade_shear_h= np.exp(np.cumsum(m[pm].blade_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].blade_shear_L= np.exp(np.cumsum(m[pm].blade_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].hinge_shear_h[78:], m[pm].hinge_fcy_h[78:-1])
+m[pm].beta_hinge_h= optimize.anneal(scaling_func, m[pm].hinge_fcy_h[0])[0]
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].hinge_shear_L[78:], m[pm].hinge_fcy_L[78:-1])
+m[pm].beta_hinge_L= optimize.anneal(scaling_func, m[pm].hinge_fcy_L[0])[0]
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].blade_shear_h[78:], m[pm].blade_fcy_h[78:-1])
+m[pm].beta_blade_h= optimize.anneal(scaling_func, m[pm].blade_fcy_h[0])[0]
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].blade_shear_L[78:], m[pm].blade_fcy_L[78:-1])
+m[pm].beta_blade_L= optimize.anneal(scaling_func, m[pm].blade_fcy_L[0])[0]
+
+
+
+
+
+pm= 'ALC'
+Nframes= len(m[pm].frames)-1
+m[pm].hinge_shear_h= np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].hinge_shear_L= np.exp(np.cumsum(m[pm].hinge_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].blade_shear_h= np.exp(np.cumsum(m[pm].blade_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].blade_shear_L= np.exp(np.cumsum(m[pm].blade_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].hinge_shear_h, m[pm].hinge_fcy_h[:-1])
+m[pm].beta_hinge_h= optimize.anneal(scaling_func, m[pm].hinge_fcy_h[0])[0]
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].hinge_shear_L, m[pm].hinge_fcy_L[:-1])
+m[pm].beta_hinge_L= optimize.anneal(scaling_func, m[pm].hinge_fcy_L[0])[0]
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].blade_shear_h, m[pm].blade_fcy_h[:-1])
+m[pm].beta_blade_h= optimize.anneal(scaling_func, m[pm].blade_fcy_h[0])[0]
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].blade_shear_L, m[pm].blade_fcy_L[:-1])
+m[pm].beta_blade_L= optimize.anneal(scaling_func, m[pm].blade_fcy_L[0])[0]
+
+
+pm= 'DLC'
+Nframes= len(m[pm].frames)-1
+m[pm].hinge_shear_h= np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].hinge_shear_L= np.exp(np.cumsum(m[pm].hinge_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].blade_shear_h= np.exp(np.cumsum(m[pm].blade_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].blade_shear_L= np.exp(np.cumsum(m[pm].blade_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].hinge_shear_h, m[pm].hinge_fcy_h[:-1])
+m[pm].beta_hinge_h= optimize.anneal(scaling_func, m[pm].hinge_fcy_h[0])[0]
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].hinge_shear_L, m[pm].hinge_fcy_L[:-1])
+m[pm].beta_hinge_L= optimize.anneal(scaling_func, m[pm].hinge_fcy_L[0])[0]
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].blade_shear_h, m[pm].blade_fcy_h[:-1])
+m[pm].beta_blade_h= optimize.anneal(scaling_func, m[pm].blade_fcy_h[0])[0]
+
+def scaling_func(beta):
+    return square_difference(beta*m[pm].blade_shear_L, m[pm].blade_fcy_L[:-1])
+m[pm].beta_blade_L= optimize.anneal(scaling_func, m[pm].blade_fcy_L[0])[0]
+
+
+
+f, ((axBH, axHH),(axBL, axHL))= plt.subplots(2,2)
+
+axBH.set_ylabel(r'blade height[px]')
+axBH.set_xlabel(r'timeAPF[h]')
+axBH.plot(16.+np.cumsum(m['WT'].dt), m['WT'].beta_blade_h*m['WT'].blade_shear_h, label='WT', color='red')
+axBH.plot(22.+np.cumsum(m['ALC'].dt), m['ALC'].beta_blade_h*m['ALC'].blade_shear_h, label='ALC', color='blue')
+axBH.plot(22.+np.cumsum(m['DLC'].dt), m['DLC'].beta_blade_h*m['DLC'].blade_shear_h, label='DLC', color='black')
+axBH.grid()
+
+axHH.set_ylabel(r'hinge height[px]')
+axHH.set_xlabel(r'timeAPF[h]')
+axHH.plot(16.+np.cumsum(m['WT'].dt), m['WT'].beta_hinge_h*m['WT'].hinge_shear_h, label='WT', color='red')
+axHH.plot(22.+np.cumsum(m['ALC'].dt), m['ALC'].beta_hinge_h*m['ALC'].hinge_shear_h, label='ALC', color='blue')
+axHH.plot(22.+np.cumsum(m['DLC'].dt), m['DLC'].beta_hinge_h*m['DLC'].hinge_shear_h, label='DLC', color='black')
+axHH.legend(loc='best')
+axHH.grid()
+
+axBL.set_ylabel(r'blade length[px]')
+axBL.set_xlabel(r'timeAPF[h]')
+axBL.plot(16.+np.cumsum(m['WT'].dt), m['WT'].beta_blade_L*m['WT'].blade_shear_L, label='WT', color='red')
+axBL.plot(22.+np.cumsum(m['ALC'].dt), m['ALC'].beta_blade_L*m['ALC'].blade_shear_L, label='ALC', color='blue')
+axBL.plot(22.+np.cumsum(m['DLC'].dt), m['DLC'].beta_blade_L*m['DLC'].blade_shear_L, label='DLC', color='black')
+axBL.grid()
+
+axHL.set_ylabel(r'hinge_length[px]')
+axHL.set_xlabel(r'timeAPF[h]')
+axHL.plot(16.+np.cumsum(m['WT'].dt), m['WT'].beta_hinge_L*m['WT'].hinge_shear_L, label='WT', color='red')
+axHL.plot(22.+np.cumsum(m['ALC'].dt), m['ALC'].beta_hinge_L*m['ALC'].hinge_shear_L, label='ALC', color='blue')
+axHL.plot(22.+np.cumsum(m['DLC'].dt), m['DLC'].beta_hinge_L*m['DLC'].hinge_shear_L, label='DLC', color='black')
+axHL.grid()
+
+f.tight_layout()
+plt.savefig('figures/cumulative_piv_shear_fitted_after_22.png', dpi=1000)
+plt.show()
+
+
+plt.figure()
+plt.plot(np.array(m['ALC'].frames[:-1]), m['ALC'].beta_hinge_h*m['ALC'].hinge_shear_h)
+plt.plot(m['ALC'].frames[:-1], m['ALC'].hinge_fcy_h[:-1])
+plt.show()
+
+
+
 
 Nframes= len(m[pm].frames)-1
 plt.figure()
@@ -103,6 +228,13 @@ axDLC.plot(m[pm].frames[:Nframes], m[pm].hinge_fcy_h[0]*np.exp(np.cumsum(m[pm].h
 plt.tight_layout()
 plt.savefig('figures/hinge_height_plot.png', dpi=2000)
 plt.show()
+
+plt.figure()
+plt.plot(m[pm].frames, m[pm].blade_fcy_L*m[pm].blade_fcy_h/(m[pm].blade_fcy_L[0]*m[pm].blade_fcy_h[0]), label='old area')
+plt.show()
+
+plt.plot(m[pm].frames, m[pm].blade_fcy_L*m[pm].blade_fcy_h, label='fcy area')
+plt.plot(m[pm].frames, m[pm].blade_seg_L*m[pm].blade_seg_h, label='seg area')
 
 plt.figure()
 plt.plot(m.frames, WT_hinge_fcy_h)

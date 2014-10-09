@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="66e60279-376d-44cc-86ae-8f9887a8bf27" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/region_size_plots.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/drosophila_data_library.iml" afterPath="$PROJECT_DIR$/.idea/drosophila_data_library.iml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/globals.py" afterPath="$PROJECT_DIR$/globals.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib.py" afterPath="$PROJECT_DIR$/lib.py" />
@@ -33,10 +32,8 @@
       <file leaf-file-name="globals.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/globals.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="101" column="58" selection-start="3303" selection-end="7431" vertical-scroll-proportion="0.6979769" vertical-offset="1840" max-vertical-offset="9039">
-              <folding>
-                <element signature="e#0#22#0" expanded="true" />
-              </folding>
+            <state line="9" column="0" selection-start="251" selection-end="251" vertical-scroll-proportion="0.0778032" vertical-offset="119" max-vertical-offset="8925">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -44,7 +41,7 @@
       <file leaf-file-name="region_size_plots.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/region_size_plots.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="50" column="0" selection-start="4329" selection-end="4329" vertical-scroll-proportion="0.0" vertical-offset="452" max-vertical-offset="1288">
+            <state line="50" column="0" selection-start="4329" selection-end="4329" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="952">
               <folding />
             </state>
           </provider>
@@ -53,27 +50,8 @@
       <file leaf-file-name="lib.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="70" column="0" selection-start="2929" selection-end="2929" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1081">
-              <folding>
-                <element signature="e#503#561#0" expanded="false" />
-                <element signature="e#587#697#0" expanded="false" />
-                <element signature="e#733#1729#0" expanded="false" />
-                <element signature="e#1758#2081#0" expanded="false" />
-                <element signature="e#2122#2248#0" expanded="false" />
-                <element signature="e#2289#2693#0" expanded="false" />
-                <element signature="e#2739#2928#0" expanded="false" />
-                <element signature="e#3617#3899#0" expanded="false" />
-                <element signature="e#3934#4208#0" expanded="false" />
-                <element signature="e#4246#4473#0" expanded="false" />
-                <element signature="e#4507#5076#0" expanded="false" />
-                <element signature="e#5111#5704#0" expanded="false" />
-                <element signature="e#5741#6340#0" expanded="false" />
-                <element signature="e#6387#6676#0" expanded="false" />
-                <element signature="e#6731#7150#0" expanded="false" />
-                <element signature="e#7206#7426#0" expanded="false" />
-                <element signature="e#7468#7978#0" expanded="false" />
-                <element signature="e#8020#9462#0" expanded="false" />
-              </folding>
+            <state line="90" column="14" selection-start="3651" selection-end="3743" vertical-scroll-proportion="0.0" vertical-offset="1756" max-vertical-offset="3349">
+              <folding />
             </state>
           </provider>
         </entry>
@@ -99,17 +77,17 @@
         <option value="$PROJECT_DIR$/R_conversions.py" />
         <option value="$PROJECT_DIR$/test.py" />
         <option value="$PROJECT_DIR$/gui.py" />
-        <option value="$PROJECT_DIR$/lib.py" />
         <option value="$PROJECT_DIR$/region_size_plots.py" />
+        <option value="$PROJECT_DIR$/lib.py" />
         <option value="$PROJECT_DIR$/globals.py" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-2" />
-    <option name="y" value="-3" />
-    <option name="width" value="1924" />
-    <option name="height" value="1172" />
+    <option name="x" value="8" />
+    <option name="y" value="54" />
+    <option name="width" value="1280" />
+    <option name="height" value="772" />
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true">
     <OptionsSetting value="true" id="Add" />
@@ -137,6 +115,7 @@
       <sortByType />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -157,7 +136,6 @@
           </PATH>
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -165,8 +143,8 @@
     <property name="options.lastSelected" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$/globals.py" />
     <property name="FullScreen" value="false" />
-    <property name="options.searchVisible" value="true" />
     <property name="options.splitter.details.proportions" value="0.2" />
+    <property name="options.searchVisible" value="true" />
   </component>
   <component name="PyConsoleOptionsProvider">
     <option name="myPythonConsoleState">
@@ -349,18 +327,18 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-2" y="-3" width="1924" height="1172" extended-state="6" />
+    <frame x="8" y="54" width="1280" height="772" extended-state="6" />
     <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3297546" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3297546" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.14791666" sideWeight="0.7290503" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.14717582" sideWeight="0.7308869" order="0" side_tool="false" content_ui="combo" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.27094972" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.26911315" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -412,9 +390,7 @@
     <entry file="file://$PROJECT_DIR$/globals.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="192" column="20" selection-start="8133" selection-end="8133" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="4531">
-          <folding>
-            <element signature="e#0#22#0" expanded="true" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -435,9 +411,7 @@
     <entry file="file://$PROJECT_DIR$/globals.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="154" column="0" selection-start="6481" selection-end="6786" vertical-scroll-proportion="0.0" vertical-offset="3542" max-vertical-offset="4531">
-          <folding>
-            <element signature="e#0#22#0" expanded="true" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -458,9 +432,7 @@
     <entry file="file://$PROJECT_DIR$/globals.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="3" column="12" selection-start="0" selection-end="0" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="2231">
-          <folding>
-            <element signature="e#0#22#0" expanded="true" />
-          </folding>
+          <folding />
         </state>
       </provider>
     </entry>
@@ -485,32 +457,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/lib.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="70" column="0" selection-start="2929" selection-end="2929" vertical-scroll-proportion="0.0" vertical-offset="0" max-vertical-offset="1081">
-          <folding>
-            <element signature="e#503#561#0" expanded="false" />
-            <element signature="e#587#697#0" expanded="false" />
-            <element signature="e#733#1729#0" expanded="false" />
-            <element signature="e#1758#2081#0" expanded="false" />
-            <element signature="e#2122#2248#0" expanded="false" />
-            <element signature="e#2289#2693#0" expanded="false" />
-            <element signature="e#2739#2928#0" expanded="false" />
-            <element signature="e#3617#3899#0" expanded="false" />
-            <element signature="e#3934#4208#0" expanded="false" />
-            <element signature="e#4246#4473#0" expanded="false" />
-            <element signature="e#4507#5076#0" expanded="false" />
-            <element signature="e#5111#5704#0" expanded="false" />
-            <element signature="e#5741#6340#0" expanded="false" />
-            <element signature="e#6387#6676#0" expanded="false" />
-            <element signature="e#6731#7150#0" expanded="false" />
-            <element signature="e#7206#7426#0" expanded="false" />
-            <element signature="e#7468#7978#0" expanded="false" />
-            <element signature="e#8020#9462#0" expanded="false" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/region_size_plots.py">
       <provider selected="true" editor-type-id="text-editor">
         <state line="50" column="0" selection-start="4329" selection-end="4329" vertical-scroll-proportion="0.0" vertical-offset="452" max-vertical-offset="1288">
@@ -518,12 +464,17 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/lib.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="90" column="14" selection-start="3651" selection-end="3743" vertical-scroll-proportion="0.0" vertical-offset="940" max-vertical-offset="3349">
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/globals.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="101" column="58" selection-start="3303" selection-end="7431" vertical-scroll-proportion="0.6979769" vertical-offset="1840" max-vertical-offset="9039">
-          <folding>
-            <element signature="e#0#22#0" expanded="true" />
-          </folding>
+        <state line="9" column="0" selection-start="251" selection-end="251" vertical-scroll-proportion="0.0778032" vertical-offset="119" max-vertical-offset="8925">
+          <folding />
         </state>
       </provider>
     </entry>
