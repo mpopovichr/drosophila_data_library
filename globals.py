@@ -15,7 +15,12 @@ import time
 
 import lib
 
-def process_delta(d):
+
+
+def get_age(g):
+    return g - (g.min() + process_delta(np.array(g)-np.array(g.shift())))
+
+def tri_track_process(self, d):
     last_from= [0]
     cd= np.cumsum(d[1:])
     for x in d[1:]:
@@ -25,18 +30,15 @@ def process_delta(d):
             last_from.append(cd[len(last_from)-1])
     return np.array(last_from)
 
-def get_age(g):
-    return g - (g.min() + process_delta(np.array(g)-np.array(g.shift())))
+def tri_track_last_occ(d):
+    last_occ=np.append(np.array([0 if np.abs(x) < 2 else 1 for x in d[:-1]])*(np.cumsum(d[:-1])), np.cumsum(d[:-1])[-1])
+    return pd.Series(last_occ).replace(0, method='bfill')
 
 
 
-##### CHECK IF RDATA IS NEWER THAN CSV ####################
-
-import os.path, time
-
-print "last modified: %s" % time.ctime(os.path.getmtime(lib.DB_path+'WT_25deg_111102/shear_contrib/triTracked.RData'))
-print "last modified: %s" % time.ctime(os.path.getmtime(lib.DB_path+'WT_25deg_111102/shear_contrib/triTracked.csv'))
-time.ctime(os.path.getmtime(lib.DB_path+'WT_25deg_111102/shear_contrib/triTracked.RData')) < time.ctime(os.path.getmtime(lib.DB_path+'WT_25deg_111102/shear_contrib/triTracked.csv'))
+a= [0]
+g= m.triTracked['frame'].copy()[84:90]
+d= np.array(g.shift(-1))-np.array(g)
 
 
 
@@ -50,39 +52,20 @@ time= np.array(rdt['time_sec'])/3600.+ 15.
 m.load_triTracked()
 m.load_triCategories()
 
-print('Done')
-triTracked= m.triTracked
-triCategories= m.triCategories
+m.triTracked= pd.merge(m.triTracked, m.triCategories, on='tri_id', how='left')
+m.triTracked['tri_hash_a']= m.triTracked['cell_a']*10**10 + m.triTracked['cell_b']*10**5 + m.triTracked['cell_c']
+m.triTracked['tri_hash_b']= m.triTracked['cell_b']*10**10 + m.triTracked['cell_c']*10**5 + m.triTracked['cell_a']
+m.triTracked['tri_hash_c']= m.triTracked['cell_c']*10**10 + m.triTracked['cell_a']*10**5 + m.triTracked['cell_b']
+m.triTracked['tri_hash']= m.triTracked[['tri_hash_a', 'tri_hash_b', 'tri_hash_c']].min(axis=1)
+m.triTracked= m.triTracked.sort(['tri_hash', 'frame'])
+m.triTracked= m.triTracked.reset_index()
+m.triTracked= m.triTracked[['tri_id', 'frame', 'type', 'tri_hash']]
+m.triTracked['age']= m.triTracked[['tri_hash', 'frame']].groupby(by='tri_hash').transform(lambda g: g - (g.min() + m.tri_track_process(np.array(g)-np.array(g.shift()))))
+m.triTracked['time_left']= m.triTracked[['tri_hash', 'frame']].groupby(by='tri_hash').transform(lambda g: tri_track_last_occ(np.array(g.shift(-1))- np.array(g)) - g)
+m.triTracked['occ_type']= m.triTracked[['tri_hash', 'type']].groupby(by='tri_hash').transform(lambda g: g.fillna(method='ffill')).fillna('missing')
+m.triTracked['dis_type']= m.triTracked[['tri_hash', 'type']].groupby(by='tri_hash').transform(lambda g: g.fillna(method='bfill')).fillna('missing')
+m.triTracked.to_csv(lib.DB_path+m.name+'/shear_contrib/triTracked_marko.csv')
 
-test= pd.merge(triTracked, triCategories, left_on='tri_id', right_on='tri_id', how='left')
-
-test['tri_hash_a']= test['cell_a']*10**10 + test['cell_b']*10**5 + test['cell_c']
-test['tri_hash_b']= test['cell_b']*10**10 + test['cell_c']*10**5 + test['cell_a']
-test['tri_hash_c']= test['cell_c']*10**10 + test['cell_a']*10**5 + test['cell_b']
-test['min_tri_hash']= test[['tri_hash_a', 'tri_hash_b', 'tri_hash_c']].min(axis=1)
-test= test.sort(['min_tri_hash', 'frame'])
-test= test.reset_index()
-test= test[['tri_id', 'frame', 'type', 'min_tri_hash', 'tri_hash']]
-
-min_tri_hash_list= test['min_tri_hash'].unique()
-grouped= test.groupby(by='min_tri_hash')
-
-grouped_frame= test[['min_tri_hash', 'frame']].groupby(by='min_tri_hash')
-start= time.time()
-test_age= grouped_frame.transform(lambda g: g - (g.min() + process_delta(np.array(g)-np.array(g.shift()))))
-end= time.time()
-print('Age calculation took: '+str(end-start)+' seconds')
-grouped_type=  test[['min_tri_hash', 'type']].groupby(by='min_tri_hash')
-start= time.time()
-test_type= grouped_type.transform(lambda g: g.fillna(method='ffill'))
-test_type= test_type.fillna('missing')
-end= time.time()
-print('Type filling took: '+str(end-start)+' seconds')
-
-test['age']= test_age
-test['type']= test_type
-
-test.to_csv('/home/mpopovic/Downloads/tri_age_marko.csv')
 
 test= pp.read_csv('/home/mpopovic/Downloads/tri_age_marko.csv')
 late_test=test[test['frame']>50]

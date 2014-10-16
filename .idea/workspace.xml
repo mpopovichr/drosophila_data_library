@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="66e60279-376d-44cc-86ae-8f9887a8bf27" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/elongation_area_correlation.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/globals.py" afterPath="$PROJECT_DIR$/globals.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/lib.py" afterPath="$PROJECT_DIR$/lib.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
@@ -28,10 +27,10 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="globals.py" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="globals.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/globals.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="50" column="22" selection-start="1406" selection-end="1448" vertical-scroll-proportion="0.0" vertical-offset="713" max-vertical-offset="18515">
+            <state line="64" column="0" selection-start="2267" selection-end="2267" vertical-scroll-proportion="0.87132865" vertical-offset="849" max-vertical-offset="18124">
               <folding>
                 <element signature="e#0#22#0" expanded="true" />
               </folding>
@@ -39,14 +38,25 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="lib.py" pinned="false" current="true" current-in-tab="true">
+      <file leaf-file-name="lib.py" pinned="false" current="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/lib.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="194" column="45" selection-start="8606" selection-end="8606" vertical-scroll-proportion="0.68406594" vertical-offset="2285" max-vertical-offset="3013">
+            <state line="250" column="34" selection-start="11636" selection-end="11636" vertical-scroll-proportion="0.0" vertical-offset="1802" max-vertical-offset="2622">
               <folding>
                 <element signature="e#0#22#0" expanded="true" />
-                <element signature="e#4510#4871#0" expanded="false" />
-                <element signature="e#4906#5180#0" expanded="false" />
+                <element signature="e#545#668#0" expanded="false" />
+                <element signature="e#694#752#0" expanded="false" />
+                <element signature="e#778#888#0" expanded="false" />
+                <element signature="e#924#1033#0" expanded="false" />
+                <element signature="e#1070#1409#0" expanded="false" />
+                <element signature="e#1445#2441#0" expanded="false" />
+                <element signature="e#2470#2793#0" expanded="false" />
+                <element signature="e#2834#2960#0" expanded="false" />
+                <element signature="e#3001#3405#0" expanded="false" />
+                <element signature="e#3451#3640#0" expanded="false" />
+                <element signature="e#3679#4276#0" expanded="false" />
+                <element signature="e#4310#4362#0" expanded="false" />
+                <element signature="e#4389#4455#0" expanded="false" />
                 <element signature="e#5246#5549#0" expanded="false" />
                 <element signature="e#5587#5814#0" expanded="false" />
                 <element signature="e#5854#6260#0" expanded="false" />
@@ -55,10 +65,8 @@
                 <element signature="e#7228#7705#0" expanded="false" />
                 <element signature="e#7742#8224#0" expanded="false" />
                 <element signature="e#8271#8560#0" expanded="false" />
-                <element signature="e#8615#9034#0" expanded="false" />
                 <element signature="e#9090#9310#0" expanded="false" />
                 <element signature="e#9352#9862#0" expanded="false" />
-                <element signature="e#9904#11346#0" expanded="false" />
               </folding>
             </state>
           </provider>
@@ -87,8 +95,8 @@
         <option value="$PROJECT_DIR$/gui.py" />
         <option value="$PROJECT_DIR$/region_size_plots.py" />
         <option value="$PROJECT_DIR$/elongation_area_correlation.py" />
-        <option value="$PROJECT_DIR$/globals.py" />
         <option value="$PROJECT_DIR$/lib.py" />
+        <option value="$PROJECT_DIR$/globals.py" />
       </list>
     </option>
   </component>
@@ -344,7 +352,11 @@
       <created>1412862417560</created>
       <updated>1412862417560</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="aaa">
+      <created>1413469374099</created>
+      <updated>1413469374099</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TodoView" selected-index="0">
@@ -371,6 +383,7 @@
     <frame x="-2" y="-3" width="1924" height="1172" extended-state="6" />
     <editor active="true" />
     <layout>
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3297546" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3297546" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
@@ -385,7 +398,6 @@
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="SLIDING" type="SLIDING" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
@@ -496,22 +508,24 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/globals.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="50" column="22" selection-start="1406" selection-end="1448" vertical-scroll-proportion="0.0" vertical-offset="713" max-vertical-offset="18515">
-          <folding>
-            <element signature="e#0#22#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/lib.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="194" column="45" selection-start="8606" selection-end="8606" vertical-scroll-proportion="0.68406594" vertical-offset="2285" max-vertical-offset="3013">
+        <state line="250" column="34" selection-start="11636" selection-end="11636" vertical-scroll-proportion="0.0" vertical-offset="1802" max-vertical-offset="2622">
           <folding>
             <element signature="e#0#22#0" expanded="true" />
-            <element signature="e#4510#4871#0" expanded="false" />
-            <element signature="e#4906#5180#0" expanded="false" />
+            <element signature="e#545#668#0" expanded="false" />
+            <element signature="e#694#752#0" expanded="false" />
+            <element signature="e#778#888#0" expanded="false" />
+            <element signature="e#924#1033#0" expanded="false" />
+            <element signature="e#1070#1409#0" expanded="false" />
+            <element signature="e#1445#2441#0" expanded="false" />
+            <element signature="e#2470#2793#0" expanded="false" />
+            <element signature="e#2834#2960#0" expanded="false" />
+            <element signature="e#3001#3405#0" expanded="false" />
+            <element signature="e#3451#3640#0" expanded="false" />
+            <element signature="e#3679#4276#0" expanded="false" />
+            <element signature="e#4310#4362#0" expanded="false" />
+            <element signature="e#4389#4455#0" expanded="false" />
             <element signature="e#5246#5549#0" expanded="false" />
             <element signature="e#5587#5814#0" expanded="false" />
             <element signature="e#5854#6260#0" expanded="false" />
@@ -520,10 +534,17 @@
             <element signature="e#7228#7705#0" expanded="false" />
             <element signature="e#7742#8224#0" expanded="false" />
             <element signature="e#8271#8560#0" expanded="false" />
-            <element signature="e#8615#9034#0" expanded="false" />
             <element signature="e#9090#9310#0" expanded="false" />
             <element signature="e#9352#9862#0" expanded="false" />
-            <element signature="e#9904#11346#0" expanded="false" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/globals.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="64" column="0" selection-start="2267" selection-end="2267" vertical-scroll-proportion="0.87132865" vertical-offset="849" max-vertical-offset="18124">
+          <folding>
+            <element signature="e#0#22#0" expanded="true" />
           </folding>
         </state>
       </provider>

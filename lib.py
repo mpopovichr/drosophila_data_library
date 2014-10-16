@@ -240,3 +240,12 @@ class Movie:
             f_blade= f_blade.append(trivial_blade)
             f_blade= f_blade.append(central_blade)
         return f_hinge, f_blade
+    def tri_track_process(self, d):
+        last_from= [0]
+        cd= np.cumsum(d[1:])
+        for x in d[1:]:
+            if x < 2:
+                last_from.append(last_from[-1])
+            else:
+                last_from.append(cd[len(last_from)-1])
+        return np.array(last_from)
