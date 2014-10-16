@@ -11,222 +11,277 @@ import pandas.rpy.common as com
 import os.path
 from PyQt4 import QtGui
 from scipy import optimize
+import time
 
 import lib
+
+def process_delta(d):
+    last_from= [0]
+    cd= np.cumsum(d[1:])
+    for x in d[1:]:
+        if x < 2:
+            last_from.append(last_from[-1])
+        else:
+            last_from.append(cd[len(last_from)-1])
+    return np.array(last_from)
+
+def get_age(g):
+    return g - (g.min() + process_delta(np.array(g)-np.array(g.shift())))
+
+
+
+##### CHECK IF RDATA IS NEWER THAN CSV ####################
+
+import os.path, time
+
+print "last modified: %s" % time.ctime(os.path.getmtime(lib.DB_path+'WT_25deg_111102/shear_contrib/triTracked.RData'))
+print "last modified: %s" % time.ctime(os.path.getmtime(lib.DB_path+'WT_25deg_111102/shear_contrib/triTracked.csv'))
+time.ctime(os.path.getmtime(lib.DB_path+'WT_25deg_111102/shear_contrib/triTracked.RData')) < time.ctime(os.path.getmtime(lib.DB_path+'WT_25deg_111102/shear_contrib/triTracked.csv'))
+
+
+
+##### T1 AGE AND TRIANGLE SELECTION ###########################
+
+m= lib.Movie('WT_25deg_111102')
+rdt= m.region_deform_tensor('blade')
+rdt.columns
+time= np.array(rdt['time_sec'])/3600.+ 15.
+
+m.load_triTracked()
+m.load_triCategories()
+
+print('Done')
+triTracked= m.triTracked
+triCategories= m.triCategories
+
+test= pd.merge(triTracked, triCategories, left_on='tri_id', right_on='tri_id', how='left')
+
+test['tri_hash_a']= test['cell_a']*10**10 + test['cell_b']*10**5 + test['cell_c']
+test['tri_hash_b']= test['cell_b']*10**10 + test['cell_c']*10**5 + test['cell_a']
+test['tri_hash_c']= test['cell_c']*10**10 + test['cell_a']*10**5 + test['cell_b']
+test['min_tri_hash']= test[['tri_hash_a', 'tri_hash_b', 'tri_hash_c']].min(axis=1)
+test= test.sort(['min_tri_hash', 'frame'])
+test= test.reset_index()
+test= test[['tri_id', 'frame', 'type', 'min_tri_hash', 'tri_hash']]
+
+min_tri_hash_list= test['min_tri_hash'].unique()
+grouped= test.groupby(by='min_tri_hash')
+
+grouped_frame= test[['min_tri_hash', 'frame']].groupby(by='min_tri_hash')
+start= time.time()
+test_age= grouped_frame.transform(lambda g: g - (g.min() + process_delta(np.array(g)-np.array(g.shift()))))
+end= time.time()
+print('Age calculation took: '+str(end-start)+' seconds')
+grouped_type=  test[['min_tri_hash', 'type']].groupby(by='min_tri_hash')
+start= time.time()
+test_type= grouped_type.transform(lambda g: g.fillna(method='ffill'))
+test_type= test_type.fillna('missing')
+end= time.time()
+print('Type filling took: '+str(end-start)+' seconds')
+
+test['age']= test_age
+test['type']= test_type
+
+test.to_csv('/home/mpopovic/Downloads/tri_age_marko.csv')
+
+test= pp.read_csv('/home/mpopovic/Downloads/tri_age_marko.csv')
+late_test=test[test['frame']>50]
+test_div= test[test['type']=='cdGain']
+test_t1= test[test['type']=='t1_gain']
+(1.*len(test_div)+len(test_t1))/len(test)
+late_test_div= late_test[late_test['type']=='cdGain']
+late_test_t1= late_test[late_test['type']=='t1_gain']
+(1.*len(late_test_div)+len(late_test_t1))/len(late_test)
+
+
+ne_stacked= (test[['tri_id','type',  'age']] != test_mod[['tri_id','type', 'age']]).stack()
+changed= ne_stacked[ne_stacked]
+changed
+
+#ro.r('load("~/Downloads/111102__triTracked.RData")')
+#ro.r('write.csv(triTracked, "~/Downloads/111102__triTracked.csv")')
+triTracked_topochanges= pp.read_csv('/data/biophys/etournay/DB/WT_25deg_111102/topochanges/triTracked.csv')
+triTracked_holger= pp.read_csv('/home/mpopovic/Downloads/111102__triTracked.csv')
+triTracked.sort('tri_id')[['tri_id', 'frame', 'cell_a', 'cell_b', 'cell_c']].head()
+triTracked_holger.sort('tri_id')[['tri_id', 'frame', 'cell_a', 'cell_b', 'cell_c']].head()
+triTracked_topochanges.sort('tri_id')[['tri_id', 'frame', 'cell_a', 'cell_b', 'cell_c']].head()
+
+test_holger= pd.merge(triTracked_holger, triCategories, on='tri_id', how='left')
+test_holger= test_holger.sort(['tri_hash', 'frame'])
+test_holger= test_holger.reset_index()
+test_holger= test_holger[['tri_id', 'frame', 'type', 'tri_hash']]
+
+
+grouped_frame_holger= test_holger[['tri_hash', 'frame']].groupby(by='tri_hash')
+start= time.time()
+test_age_holger= grouped_frame_holger.transform(lambda g: g - (g.min() + process_delta(np.array(g)-np.array(g.shift()))))
+end= time.time()
+print('Age calculation took: '+str(end-start)+' seconds')
+grouped_type_holger=  test_holger[['tri_hash', 'type']].groupby(by='tri_hash')
+start= time.time()
+test_type_holger= grouped_type_holger.transform(lambda g: g.fillna(method='ffill'))
+test_type_holger= test_type_holger.fillna('missing')
+end= time.time()
+print('Type filling took: '+str(end-start)+' seconds')
+
+test_holger['age']= test_age_holger
+test_holger['type']= test_type_holger
+
+comparison= pd.merge(test, test_holger, on='tri_id', suffixes=('', '_h'))
+
+comparison[['tri_id','frame','frame_h', 'type', 'age','min_tri_hash',  'type_h', 'age_h', 'tri_hash']].head()
+
+first_comparison= pd.merge(triTracked[['tri_id', 'frame']], triTracked_holger[['tri_id', 'frame']], on='tri_id')
+first_comparison.head()
+
+test['min_tri_hash']= test[['tri_hash_a', 'tri_hash_b', 'tri_hash_c']].min(axis=1)
+test= test[['tri_id', 'frame', 'type', 'min_tri_hash', 'tri_hash']]
+test= test.sort(['min_tri_hash', 'frame'])
+type(grouped)
+
+ro.r('load("'+lib.DB_path+m.name+'/shear_contrib/triList.RData")')
+ro.r('write.csv(triList, "'+lib.DB_path+m.name+'/shear_contrib/triList.csv")')
+testtriList= pd.read_csv(lib.DB_path+m.name+'/shear_contrib/triList.csv')
+testtriList.columns
+second_comparison= pd.merge(triTracked[['tri_id','frame']], testtriList[['tri_id','frame']],on='tri_id')
+second_comparison.head(20)
+
+def smooth_data(x, NSmooth=10):
+    return np.convolve(x, 1.*np.ones(NSmooth)/NSmooth, mode='valid')
+
+T1= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotT1_done.csv')
+noT1= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotT1_no.csv')
+total= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotBlade.csv')
+sample= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotSample.csv')
+
+
+
+T1= T1.sort('frame')
+noT1= noT1.sort('frame')
+total= total.sort('frame')
+sample= sample.sort('frame')
+frames= smooth_data(sorted(np.array(T1['frame'])))
+T1_QxyThetaU= smooth_data(np.array(T1['QxyThetaU']))
+T1_ThetaU= smooth_data(np.array(T1['ThetaU']))
+T1_area= smooth_data(np.array(T1['tri_area.i1']))
+T1_Q_xy_i1= smooth_data(np.array(T1['Q_xy.i1']))
+T1_Q_xy_ti2= smooth_data(np.array(T1['Q_xy.ti2']))
+sample_QxyThetaU= smooth_data(np.array(sample['QxyThetaU'])[:-1])
+sample_area= smooth_data(np.array(sample['tri_area.i1'])[:-1])
+noT1_QxyThetaU= smooth_data(np.array(noT1['QxyThetaU'])[:-1])
+noT1_area= smooth_data(np.array(noT1['tri_area.i1'])[:-1])
+total_QxyThetaU= smooth_data(np.array(total['QxyThetaU'])[:-1])
+total_area= smooth_data(np.array(total['tri_area.i1'])[:-1])
+dt= time[1:]-time[:-1]
+dt= smooth_data(dt)
+smooth_time= smooth_data(time[:-1])
+
+len(dt)
+
+plt.figure()
+plt.plot(smooth_time, T1_QxyThetaU*T1_area/total_area/dt, label='T1')
+plt.plot(smooth_time, total_QxyThetaU*T1_area/total_area/dt, label='reference')
+#plt.plot(smooth_time, sample_QxyThetaU*sample_area/total_area/dt, label='sample')
+plt.plot(smooth_time, noT1_QxyThetaU*noT1_area/total_area/dt, label='old')
+plt.plot(smooth_time, total_QxyThetaU/dt, label='total')
+plt.plot(smooth_time,T1_QxyThetaU*T1_area/total_area/dt+noT1_QxyThetaU*noT1_area/total_area/dt, label='check' )
+plt.xlabel(r'timeAPF[h]',fontsize=20)
+plt.ylabel(r'$\langle \delta \psi Q_{xy}\rangle$', fontsize=20)
+plt.grid()
+plt.legend(loc=4)
+plt.tight_layout()
+plt.savefig('figures/T1_correlation_contribution.png', dpi=300)
+#plt.close()
+plt.show()
+
+
+plt.figure()
+plt.plot(smooth_time, T1_area, label='T1')
+#plt.plot(frames, sample_area/total_area, label='sample')
+plt.plot(smooth_time, noT1_area, label='old')
+plt.xlabel(r'timeAPF[h]',fontsize=20)
+plt.ylabel(r'area[px]', fontsize=20)
+plt.grid()
+plt.legend(loc=7)
+plt.tight_layout()
+plt.savefig('figures/T1_area.png', dpi=300)
+plt.show()
+
+plt.figure()
+smoothPlot(frames, np.array(T1_QxyThetaU), label='T1')
+smoothPlot(frames, np.array(noT1_QxyThetaU[:-1]), label='old')
+smoothPlot(frames, total_QxyThetaU[:-1], label='total')
+plt.grid()
+plt.legend(loc=4)
+plt.show()
+
+plt.figure()
+plt.plot(frames, T1_area, label='T1')
+plt.plot(frames, noT1_area[:-1], label= 'old')
+plt.plot(frames, total_area[:-1], label='total')
+plt.grid()
+plt.legend(loc=4)
+plt.show()
+
+
+CD= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotCD_done.csv')
+noCD= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotCD_no.csv')
+
+
+CD= CD.sort('frame')
+noCD= noCD.sort('frame')
+total= total.sort('frame')
+
+frames= smooth_data(sorted(np.array(CD['frame'])))
+CD_QxyThetaU= smooth_data(np.array(CD['QxyThetaU']))
+CD_ThetaU= smooth_data(np.array(CD['ThetaU']))
+CD_area= smooth_data(np.array(CD['tri_area.i1']))
+CD_Q_xy_i1= smooth_data(np.array(CD['Q_xy.i1']))
+CD_Q_xy_ti2= smooth_data(np.array(CD['Q_xy.ti2']))
+sample_QxyThetaU= smooth_data(np.array(sample['QxyThetaU'])[:-1])
+sample_area= smooth_data(np.array(sample['tri_area.i1'])[:-1])
+noCD_QxyThetaU= smooth_data(np.array(noCD['QxyThetaU'])[:-1])
+noCD_area= smooth_data(np.array(noCD['tri_area.i1'])[:-1])
+total_QxyThetaU= smooth_data(np.array(total['QxyThetaU'])[:-1])
+total_area= smooth_data(np.array(total['tri_area.i1'])[:-1])
+dt= time[1:]-time[:-1]
+dt= smooth_data(dt)
+smooth_time= smooth_data(time[:-1])
+
+
+plt.figure()
+plt.plot(smooth_time, CD_QxyThetaU*CD_area/total_area/dt, label='CD')
+#plt.plot(smooth_time, sample_QxyThetaU*sample_area/total_area/dt, label='sample')
+plt.plot(smooth_time, total_QxyThetaU*CD_area/total_area/dt, label='reference')
+plt.plot(smooth_time, noCD_QxyThetaU*noCD_area/total_area/dt, label='old')
+plt.plot(smooth_time, total_QxyThetaU/dt, label='total')
+plt.plot(smooth_time,CD_QxyThetaU*CD_area/total_area/dt+noCD_QxyThetaU*noCD_area/total_area/dt, label='check' )
+plt.xlabel(r'timeAPF[h]',fontsize=20)
+plt.ylabel(r'$\langle \delta \psi Q_{xy}\rangle$', fontsize=20)
+plt.grid()
+plt.legend(loc=4)
+plt.tight_layout()
+plt.savefig('figures/CD_correlation_contribution.png', dpi=300)
+#plt.close()
+plt.show()
+
+plt.figure()
+plt.plot(smooth_time, CD_area, label='CD')
+#plt.plot(frames, sample_area/total_area, label='sample')
+plt.plot(smooth_time, noCD_area, label='old')
+plt.xlabel(r'timeAPF[h]',fontsize=20)
+plt.ylabel(r'area[px]', fontsize=20)
+plt.grid()
+plt.legend(loc=7)
+plt.tight_layout()
+plt.savefig('figures/CD_area.png', dpi=300)
+plt.show()
 
 ##### AREA ELONGATION CORRELATION PLOT AND MOVIE ######################
 
 
 
-###### AREA ELONGATION CORRELATION ANALYSIS ##############################
 
-m= {}
-
-name_list= ['WT_25deg_111102',
-            'WT_25deg_111103',
-            'WT_25deg_120531',
-            'WT_25-30deg_130921',
-            'MTdp_25deg_140222',
-            'WT_sevBdist-25deg_130131',
-            'WT_antLinkCut-25deg_131227',
-            'HTcdc2_25-30deg_130927',
-            'MTcdc2_25-30deg_130919',
-            'MTcdc2_25-30deg_130917',
-            'MTcdc2_25-30deg_130916',
-            'MTcdc2_25deg_130905']
-
-for name in name_list:
-    m[name]= lib.Movie(name)
-    m[name].cell_area_avg= {}
-    m[name].Qxx_avg, m[name].Qxy_avg, m[name].Q_avg= {}, {} ,{}
-
-for name in name_list:
-    print name
-    m[name].load_roiBT()
-    for region in m[name].regions:
-        print region
-        m[name].cell_area_avg[region]= lib.region_cells_area_avg(m[name].region_cells(region))
-        m[name].Qxx_avg[region], m[name].Qxy_avg[region], m[name].Q_avg[region]= lib.region_cells_shape_avg(m[name].region_cells(region))
-
-global ref_cell_area
-ref_cell_area= m['WT_25deg_111103'].cell_area_avg['blade'][-1]
-print('Done!')
-
-markers = ['o','v','^','D','s']
-for region in m['WT_25deg_111102'].regions:
-    print region
-    plt.figure()
-    color_count= 0
-    for name in name_list:
-        if region in m[name].regions:
-            color_frac= 1.0*color_count/len(name_list)
-            color_count +=1
-            plt.scatter(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area), m[name].Qxx_avg[region][-1],c=plt.cm.hsv(color_frac), s=50, label=name, marker= markers[np.mod(color_count,5)])
-    plt.xlabel('Q_xx+Q_yy')
-    plt.ylabel('(Q_xx-Q_yy)/2')
-    plt.title(region)
-    plt.legend(loc=4, fontsize=6)
-    plt.savefig('figures/area_elongation_'+region+'_Q_xx-Q_yy.pdf')
-    plt.close()
-
-markers = ['o','v','^','D','s']
-for region in m['WT_25deg_111102'].regions:
-    print region
-    plt.figure()
-    color_count= 0
-    for name in name_list:
-        if region in m[name].regions:
-            color_frac= 1.0*color_count/len(name_list)
-            color_count +=1
-            plt.scatter(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area), m[name].Q_avg[region][-1],c=plt.cm.hsv(color_frac), s=50, label=name, marker= markers[np.mod(color_count,5)])
-    plt.xlabel('Q_xx+Q_yy')
-    plt.ylabel('|Q|')
-    plt.title(region)
-    plt.legend(loc=4, fontsize=6)
-    plt.savefig('figures/area_elongation_'+region+'_Q.pdf')
-    plt.close()
-
-
-markers = ['o','v','^','D','s']
-linestyles= ['-','--', '-.', ':']
-plt.figure()
-color_count= 0
-for region in m['WT_25deg_111102'].regions:
-    print region
-    color_frac= 1.0*color_count/len(name_list)
-    color_count +=1
-    x,y = [], []
-    for name in name_list:
-        if region in m[name].regions:
-            x.append(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area))
-            y.append(m[name].Qxx_avg[region][-1])
-    coeff= np.polyfit(x,y,1)
-    fit_x= np.linspace(-1, 1, 100)
-    pol= np.poly1d(coeff)
-    plt.plot(fit_x, pol(fit_x), c=plt.cm.hsv(color_frac), label= region+': '+"{:.4f}".format(coeff[0]), ls= linestyles[np.mod(color_count,4)])
-plt.xlabel('Q_xx+Q_yy')
-plt.ylabel('(Q_xx-Q_yy)/2')
-plt.title('all')
-plt.legend(loc=2, fontsize=6)
-plt.savefig('figures/area_elongation_all_by_region_Q_xx-Q_yy.pdf')
-plt.close()
-
-markers = ['o','v','^','D','s']
-linestyles= ['-','--', '-.', ':']
-plt.figure()
-color_count= 0
-for region in m['WT_25deg_111102'].regions:
-    print region
-    color_frac= 1.0*color_count/len(name_list)
-    color_count +=1
-    x,y = [], []
-    for name in name_list:
-        if region in m[name].regions:
-            x.append(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area))
-            y.append(m[name].Q_avg[region][-1])
-    coeff= np.polyfit(x,y,1)
-    fit_x= np.linspace(-1, 1, 100)
-    pol= np.poly1d(coeff)
-    plt.plot(fit_x, pol(fit_x), c=plt.cm.hsv(color_frac), label= region, ls= linestyles[np.mod(color_count,4)])
-plt.xlabel('Q_xx+Q_yy')
-plt.ylabel('|Q|')
-plt.title('all')
-plt.legend(loc=2, fontsize=6)
-plt.savefig('figures/area_elongation_all_by_region_Q.pdf')
-plt.close()
-
-markers = ['o','v','^','D','s']
-for name in name_list:
-    print name
-    plt.figure()
-    color_count= 0
-    for region in m[name].regions:
-        color_frac= 1.0*color_count/len(m[name].regions)
-        color_count +=1
-        plt.scatter(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area), m[name].Qxx_avg[region][-1],c=plt.cm.hsv(color_frac), s=50, label=region, marker= markers[np.mod(color_count,5)])
-    plt.xlabel('Q_xx+Q_yy')
-    plt.ylabel('(Q_xx-Q_yy)/2')
-    plt.title(region)
-    plt.legend(loc=4, fontsize=6)
-    plt.savefig('figures/area_elongation_'+name+'_Q_xx-Q_yy.pdf')
-    plt.close()
-
-linestyles= ['-','--', '-.', ':']
-plt.figure()
-color_count= 0
-for name in name_list:
-    print name
-    color_frac= 1.0*color_count/len(name_list)
-    color_count +=1
-    x,y = [], []
-    for region in m[name].regions:
-        x.append(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area))
-        y.append(m[name].Qxx_avg[region][-1])
-    coeff= np.polyfit(x,y,1)
-    fit_x= np.linspace(-1, 1, 100)
-    pol= np.poly1d(coeff)
-    plt.plot(fit_x, pol(fit_x), c=plt.cm.hsv(color_frac), label= name+': '+"{:.4f}".format(coeff[0]), ls= linestyles[np.mod(color_count,4)])
-plt.xlabel('Q_xx+Q_yy')
-plt.ylabel('(Q_xx-Q_yy)/2')
-plt.title('all')
-plt.legend(loc=2, fontsize=6)
-plt.savefig('figures/area_elongation_all_by_movie_Q_xx-Q_yy.pdf')
-plt.close()
-
-x,y= [], []
-for name in name_list:
-    for region in m[name].regions:
-        x.append(np.log(m[name].cell_area_avg[region][-1]/ref_cell_area))
-        y.append(m[name].Qxx_avg[region][-1])
-plt.scatter(x,y)
-coeff= np.polyfit(x,y,1)
-fit_x= np.linspace(-1, 1, 100)
-pol= np.poly1d(coeff)
-plt.plot(fit_x, pol(fit_x), c='red', label= name)
-plt.xlabel('Q_xx+Q_yy')
-plt.ylabel('(Q_xx-Q_yy)/2')
-plt.title('all')
-plt.savefig('figures/area_elongation_all_together_fit_Q_xx-Q_yy.pdf')
-plt.close()
-plt.show()
-
-name= 'WT_25deg_111103'
-region= 'blade'
-for region in m[name].regions:
-    print region
-    cells= m[name].region_cells(region)
-    last_cells= cells[cells['frame']==m[name].frames[-1]]
-    x= np.log(np.array(last_cells['area'])/ref_cell_area)
-    y= np.array(last_cells['elong_xx'])
-    plt.figure()
-    plt.scatter(x,y, linewidths=0)
-    coeff= np.polyfit(x,y,1)
-    fit_x= np.linspace(-1, 1, 100)
-    pol= np.poly1d(coeff)
-    plt.plot(fit_x, pol(fit_x), c='red', label= name, linewidth=2)
-    plt.title(region)
-    plt.savefig('figures/area_elongation_individual_cells_'+name+'_'+region+'_Q_xx-Q_yy.pdf')
-    plt.close()
-
-name= 'WT_25deg_111103'
-region= 'blade'
-for region in m[name].regions:
-    print region
-    cells= m[name].region_cells(region)
-    last_cells= cells[cells['frame']==m[name].frames[-1]]
-    x= np.log(np.array(last_cells['area'])/ref_cell_area)
-    y1= np.array(last_cells['elong_xx'])
-    y2= np.array(last_cells['elong_xy'])
-    y= np.sqrt(y1**2+y2**2)
-    plt.figure()
-    plt.scatter(x,y, linewidths=0)
-    coeff= np.polyfit(x,y,1)
-    fit_x= np.linspace(-1, 1, 100)
-    pol= np.poly1d(coeff)
-    plt.plot(fit_x, pol(fit_x), c='red', label= name, linewidth=2)
-    plt.title(region)
-    plt.savefig('figures/area_elongation_individual_cells_'+name+'_'+region+'_Q.pdf')
-    plt.close()
 
 
 ## SHEAR CORRECTED DIMENSIONS##############
@@ -651,10 +706,7 @@ crc_xx_higher= np.array(compare3['crc_xx.y'])
 area_higher= np.array(compare3['tri_area.y'])
 crc_xx_total= np.array(compare3['crc_xx'])
 area_total= np.array(compare3['tri_area.i1'])
-def smoothPlot(x, y, *args, **kwargs):
-  kernel = np.ones(Nsmooth)/Nsmooth
-  plt.plot(np.convolve(x,kernel,'valid'), np.convolve(y,kernel,'valid'), *args, **kwargs)
-Nsmooth= 10
+
 
 plt.figure()
 smoothPlot(frames, 13*crc_xx_lower*area_lower/area_total, label= 'lower Q')

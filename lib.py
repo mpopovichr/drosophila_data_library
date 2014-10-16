@@ -10,6 +10,7 @@ import rpy2.robjects as ro
 import pandas.rpy.common as com
 import os.path
 from PyQt4 import QtGui
+import time
 
 global Path
 Path= '/data/biophys/etournay/'
@@ -17,6 +18,11 @@ Path= '/data/biophys/etournay/'
 global DB_path
 DB_path= Path+'DB/'
 
+
+
+def smoothPlot(x, y, Nsmooth=10, *args, **kwargs):
+  kernel = np.ones(Nsmooth)/Nsmooth
+  plt.plot(np.convolve(x,kernel,'valid'), np.convolve(y,kernel,'valid'), *args, **kwargs)
 def fill_zeros(s,n):
     while len(s) < n:
         s= ''.join(('0',s))
@@ -101,7 +107,6 @@ def quick_plot(data):
     plt.show()
 
 
-square_difference([0,1,2], [1,2,4])
 
 class Movie:
     def __init__(self, name):
@@ -112,48 +117,71 @@ class Movie:
         self.dbonds_loaded= False
         self.Ta_t_loaded= False
         self.triList_loaded= False
+        self.triTracked_loaded= False
         self.roiBT_loaded= False
+        self.triCategories_loaded= False
     def load_cells(self):
         if self.cells_loaded == False:
             print('Loading cells from database...')
             self.cells= psql.read_sql('SELECT * FROM cells WHERE cell_id > 10000;', self.con)
             self.cells_loaded= True
             self.frames= sorted(self.cells['frame'].unique())
+    def RData_to_csv(self, table, file_RData, file_csv):
+        if (not os.path.isfile(file_csv)) or (time.ctime(os.path.getmtime(file_RData)) > time.ctime(os.path.getmtime(file_csv))):
+            print('Converting .RData to .csv...')
+            ro.r('load("'+file_RData+'")')
+            ro.r('write.csv('+table+', "'+file_csv+'")')
+            print('Converted!')
     def load_cellinfo(self):
         if self.cellinfo_loaded == False:
             print('Loading cellinfo from database...')
             self.cellinfo= psql.read_sql('SELECT * FROM cellinfo WHERE cell_id > 10000;', self.con)
             self.cellinfo_loaded= True
+    def load_triTracked(self):
+        if self.triTracked_loaded==False:
+            file_csv=DB_path+self.name+'/shear_contrib/triTracked.csv'
+            file_RData=DB_path+self.name+'/shear_contrib/triTracked.RData'
+            print('Loading triTracked...')
+            self.RData_to_csv('triTracked',file_RData, file_csv)
+            print('Done!')
+            self.triTracked= pd.read_csv(file_csv)
+            self.triTracked_loaded= True
+    def load_triCategories(self):
+        if self.triCategories_loaded== False:
+            file_csv=DB_path+self.name+'/tri_categories/triangleCategories.csv'
+            file_RData=DB_path+self.name+'/tri_categories/triangleCategories.RData'
+            print('Loading triCategories...')
+            self.RData_to_csv('triCategories',file_RData, file_csv)
+            print('Done!')
+            self.triCategories= pd.read_csv(file_csv)
+            self.triCategories_loaded= True
     def load_Ta_t(self):
         if self.Ta_t_loaded == False:
+            file_csv= DB_path+self.name+'/shear_contrib/Ta_t.csv'
+            file_RData= DB_path+self.name+'/shear_contrib/Ta_t.RData'
             print('Loading Ta_t...')
-            if not os.path.isfile(DB_path+self.name+'/shear_contrib/Ta_t.csv'):
-                print('Converting .RData to .csv...')
-                ro.r('load("'+DB_path+self.name+'/shear_contrib/Ta_t.RData")')
-                ro.r('write.csv(triList, "'+DB_path+self.name+'/shear_contrib/Ta_t.csv")')
-                print('Converted!')
-            self.Ta_t= pd.read_csv(DB_path+self.name+'/shear_contrib/Ta_t.csv')
+            self.RData_to_csv('Ta_t',file_RData, file_csv)
+            print('Done!')
+            self.Ta_t= pd.read_csv(file_csv)
             self.Ta_t_loaded= True
             del self.Ta_t[self.Ta_t.columns[0]]
     def load_roiBT(self):
         if self.roiBT_loaded == False:
+            file_csv= DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv'
+            file_RData= DB_path+self.name+'/roi_bt/lgRoiSmoothed.RData'
             print('Loading roiBT ...')
-            if not os.path.isfile(DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv'):
-                print('Converting .RData to .csv...')
-                ro.r('load("'+DB_path+self.name+'/roi_bt/lgRoiSmoothed.RData")')
-                ro.r('write.csv(lgRoiSmoothed, "'+DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv")')
-                print('Converted!')
+            self.RData_to_csv('lgRoiSmoothed', file_RData, file_csv)
+            print('Done!')
             self.roiBT= pd.read_csv(DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv')
             self.roiBT_loaded= True
             self.regions= self.roiBT['roi'].unique()
     def load_triList(self):
         if self.triList_loaded == False:
+            file_csv= DB_path+self.name+'/shear_contrib/triList.csv'
+            file_RData= DB_path+self.name+'/shear_contrib/triList.RData'
             print('Loading triList...')
-            if not os.path.isfile(DB_path+self.name+'/shear_contrib/triList.csv'):
-                print('Converting .RData to .csv...')
-                ro.r('load("'+DB_path+self.name+'/shear_contrib/triList.RData")')
-                ro.r('write.csv(triList, "'+DB_path+self.name+'/shear_contrib/triList.csv")')
-                print('Converted!')
+            self.RData_to_csv('triList', file_RData, file_csv)
+            print('Done!')
             self.triList= pd.read_csv(DB_path+self.name+'/shear_contrib/triList.csv')
             self.triList_loaded= True
             del self.triList[self.triList.columns[0]]
