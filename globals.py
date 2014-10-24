@@ -16,30 +16,31 @@ import time
 import lib
 
 
+name='WT_25deg_111102'
+m= lib.Movie(name)
 
-def get_age(g):
-    return g - (g.min() + process_delta(np.array(g)-np.array(g.shift())))
+hinge, blade= m.fancy_hinge_blade()
+print hinge.columns
+hinge_avg_elong_xx= []
+for frame in hinge['frame'].unique():
+    elong= np.array(hinge[hinge['frame']==frame]['elong_xx'])
+    area= np.array(hinge[hinge['frame']==frame]['area'])
+    hinge_avg_elong_xx.append(np.sum(elong*area)/np.sum(area))
+    
 
-def tri_track_process(self, d):
-    last_from= [0]
-    cd= np.cumsum(d[1:])
-    for x in d[1:]:
-        if x < 2:
-            last_from.append(last_from[-1])
-        else:
-            last_from.append(cd[len(last_from)-1])
-    return np.array(last_from)
+plt.figure()
+plt.plot(hinge['frame'].unique(), hinge_avg_elong_xx)
+plt.show()
 
-def tri_track_last_occ(d):
-    last_occ=np.append(np.array([0 if np.abs(x) < 2 else 1 for x in d[:-1]])*(np.cumsum(d[:-1])), np.cumsum(d[:-1])[-1])
-    return pd.Series(last_occ).replace(0, method='bfill')
+r= m.region_deform_tensor('blade')
 
+r.columns
 
-
-a= [0]
-g= m.triTracked['frame'].copy()[84:90]
-d= np.array(g.shift(-1))-np.array(g)
-
+plt.figure()
+plt.plot(lib.smooth_data(m.time), lib.smooth_data(r['ShearT1_xx']))
+plt.plot(lib.smooth_data(m.time), lib.smooth_data(r['ShearT1_xy']))
+plt.grid()
+plt.show()
 
 
 ##### T1 AGE AND TRIANGLE SELECTION ###########################
@@ -49,21 +50,71 @@ rdt= m.region_deform_tensor('blade')
 rdt.columns
 time= np.array(rdt['time_sec'])/3600.+ 15.
 
+print test
+print test_res
+test= m.triTracked[:1000]
+tri_hash_list= np.array(sorted(test['tri_hash'].unique()))
+test_res= test[['tri_hash', 'frame']].groupby(by='tri_hash').transform(lambda g: tri_track_last_occ(g, np.array(g.shift(-1))-np.array(g)))
+test_g= test[test['tri_hash']==tri_hash_list[1]]['frame']
+tri_track_last_occ(test_g, np.array(test_g.shift(-1))-np.array(test_g))
+test_res= test_res.reset_index()
+test['time_dis']= test_res['frame']
+test['dis_type']= (
+    test[['tri_hash','type']].groupby(by='tri_hash').
+    transform(lambda g: g.fillna(method='bfill')).
+    fillna('missing')
+                   )
+
+tri_track_last_occ(np.array(g.shift(-2))- np.array(g)) - g
+
 m.load_triTracked()
+print m.triTracked.columns
 m.load_triCategories()
 
-m.triTracked= pd.merge(m.triTracked, m.triCategories, on='tri_id', how='left')
-m.triTracked['tri_hash_a']= m.triTracked['cell_a']*10**10 + m.triTracked['cell_b']*10**5 + m.triTracked['cell_c']
-m.triTracked['tri_hash_b']= m.triTracked['cell_b']*10**10 + m.triTracked['cell_c']*10**5 + m.triTracked['cell_a']
-m.triTracked['tri_hash_c']= m.triTracked['cell_c']*10**10 + m.triTracked['cell_a']*10**5 + m.triTracked['cell_b']
-m.triTracked['tri_hash']= m.triTracked[['tri_hash_a', 'tri_hash_b', 'tri_hash_c']].min(axis=1)
+m.triTracked= pd.merge(m.triTracked, m.triCategories, on='tri_id',
+                       how='left')
+m.triTracked['tri_hash_a']= (
+    m.triTracked['cell_a']*10**10
+    + m.triTracked['cell_b']*10**5
+    + m.triTracked['cell_c']
+    )
+m.triTracked['tri_hash_b']= (
+    m.triTracked['cell_b']*10**10
+    + m.triTracked['cell_c']*10**5
+    + m.triTracked['cell_a']
+    )
+m.triTracked['tri_hash_c']= (
+    m.triTracked['cell_c']*10**10
+    + m.triTracked['cell_a']*10**5
+    + m.triTracked['cell_b']
+    )
+m.triTracked['tri_hash']= (
+    m.triTracked[['tri_hash_a',
+                  'tri_hash_b',
+                  'tri_hash_c']].min(axis=1)
+    )
 m.triTracked= m.triTracked.sort(['tri_hash', 'frame'])
 m.triTracked= m.triTracked.reset_index()
 m.triTracked= m.triTracked[['tri_id', 'frame', 'type', 'tri_hash']]
-m.triTracked['age']= m.triTracked[['tri_hash', 'frame']].groupby(by='tri_hash').transform(lambda g: g - (g.min() + m.tri_track_process(np.array(g)-np.array(g.shift()))))
-m.triTracked['time_left']= m.triTracked[['tri_hash', 'frame']].groupby(by='tri_hash').transform(lambda g: tri_track_last_occ(np.array(g.shift(-1))- np.array(g)) - g)
+m.triTracked['age']= (
+    m.triTracked[['tri_hash', 'frame']]
+    .groupby(by='tri_hash')
+    .transform(lambda g:
+               g - (g.min()
+                    + m.tri_track_first_occ(np.array(g)
+                                            -np.array(g.shift()))))
+    )
+m.triTracked['time_dis']= (
+    m.triTracked[['tri_hash', 'frame']]
+    .groupby(by='tri_hash')
+    .transform(lambda g:
+               m.tri_track_last_occ(g, np.array(g.shift(-1))
+                                  -np.array(g)))
+    )
+
 m.triTracked['occ_type']= m.triTracked[['tri_hash', 'type']].groupby(by='tri_hash').transform(lambda g: g.fillna(method='ffill')).fillna('missing')
 m.triTracked['dis_type']= m.triTracked[['tri_hash', 'type']].groupby(by='tri_hash').transform(lambda g: g.fillna(method='bfill')).fillna('missing')
+
 m.triTracked.to_csv(lib.DB_path+m.name+'/shear_contrib/triTracked_marko.csv')
 
 
@@ -129,65 +180,205 @@ testtriList.columns
 second_comparison= pd.merge(triTracked[['tri_id','frame']], testtriList[['tri_id','frame']],on='tri_id')
 second_comparison.head(20)
 
-def smooth_data(x, NSmooth=10):
-    return np.convolve(x, 1.*np.ones(NSmooth)/NSmooth, mode='valid')
+
 
 T1= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotT1_done.csv')
 noT1= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotT1_no.csv')
+CD= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotCD_done.csv')
+noCD= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotCD_no.csv')
 total= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotBlade.csv')
 sample= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotSample.csv')
+T1_dis= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotT1_dis.csv')
+T1_nodis= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotT1_nodis.csv')
+CD_dis= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotCD_dis.csv')
+CD_nodis= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotCD_nodis.csv')
 
-
+Ktotal= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotKnown.csv')
+KT1= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotKnownT1_done.csv')
+KnoT1= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotKnownT1_no.csv')
+KT1_dis= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotKnownT1_dis.csv')
+KT1_nodis= pp.read_csv('/home/mpopovic/Documents/Work/Projects/drosophila_wing_analysis/Correlations/avgDeltaQtotKnownT1_nodis.csv')
 
 T1= T1.sort('frame')
 noT1= noT1.sort('frame')
+T1_dis= T1_dis.sort('frame')
+T1_nodis= T1_nodis.sort('frame')
+Ktotal= Ktotal.sort('frame')
+KT1= KT1.sort('frame')
+KnoT1= KnoT1.sort('frame')
+KT1_dis= KT1_dis.sort('frame')
+KT1_nodis= KT1_nodis.sort('frame')
+CD= CD.sort('frame')
+noCD= noCD.sort('frame')
+CD_dis= CD_dis.sort('frame')
+CD_nodis= CD_nodis.sort('frame')
 total= total.sort('frame')
-sample= sample.sort('frame')
-frames= smooth_data(sorted(np.array(T1['frame'])))
-T1_QxyThetaU= smooth_data(np.array(T1['QxyThetaU']))
-T1_ThetaU= smooth_data(np.array(T1['ThetaU']))
-T1_area= smooth_data(np.array(T1['tri_area.i1']))
-T1_Q_xy_i1= smooth_data(np.array(T1['Q_xy.i1']))
-T1_Q_xy_ti2= smooth_data(np.array(T1['Q_xy.ti2']))
-sample_QxyThetaU= smooth_data(np.array(sample['QxyThetaU'])[:-1])
-sample_area= smooth_data(np.array(sample['tri_area.i1'])[:-1])
-noT1_QxyThetaU= smooth_data(np.array(noT1['QxyThetaU'])[:-1])
-noT1_area= smooth_data(np.array(noT1['tri_area.i1'])[:-1])
-total_QxyThetaU= smooth_data(np.array(total['QxyThetaU'])[:-1])
-total_area= smooth_data(np.array(total['tri_area.i1'])[:-1])
-dt= time[1:]-time[:-1]
-dt= smooth_data(dt)
-smooth_time= smooth_data(time[:-1])
 
-len(dt)
+frames_dis= lib.smooth_data(sorted(np.array(T1_dis['frame'])))
+frames= lib.smooth_data(sorted(np.array(T1['frame'])))
+T1_dis_QxyThetaU= lib.smooth_data(np.array(T1_dis['QxyThetaU']))
+T1_dis_area= lib.smooth_data(np.array(T1_dis['tri_area.i1']))
+T1_nodis_QxyThetaU= lib.smooth_data(np.array(T1_nodis['QxyThetaU']))
+T1_nodis_area= lib.smooth_data(np.array(T1_nodis['tri_area.i1']))
+T1_QxyThetaU= lib.smooth_data(np.array(T1['QxyThetaU']))
+T1_area= lib.smooth_data(np.array(T1['tri_area.i1']))
+noT1_QxyThetaU= lib.smooth_data(np.array(noT1['QxyThetaU']))
+noT1_area= lib.smooth_data(np.array(noT1['tri_area.i1']))
+
+CD_QxyThetaU= lib.smooth_data((np.array(CD['QxyThetaU'])))
+CD_area= lib.smooth_data(np.array(CD['tri_area.i1']))
+noCD_QxyThetaU= lib.smooth_data((np.array(noCD['QxyThetaU'])))
+noCD_area= lib.smooth_data(np.array(noCD['tri_area.i1']))
+CD_dis_QxyThetaU= lib.smooth_data(np.array(CD_dis['QxyThetaU']))
+CD_dis_area= lib.smooth_data(np.array(CD_dis['tri_area.i1']))
+CD_nodis_QxyThetaU= lib.smooth_data(np.array(CD_nodis['QxyThetaU']))
+CD_nodis_area= lib.smooth_data(np.array(CD_nodis['tri_area.i1']))
+total_QxyThetaU= lib.smooth_data(np.array(total['QxyThetaU']))
+total_area= lib.smooth_data(np.array(total['tri_area.i1']))
+
+Ktotal_QxyThetaU= lib.smooth_data(np.array(Ktotal['QxyThetaU']))
+Ktotal_area= lib.smooth_data(np.array(Ktotal['tri_area.i1']))
+KT1_dis_QxyThetaU= lib.smooth_data(np.array(KT1_dis['QxyThetaU']))
+KT1_dis_area= lib.smooth_data(np.array(KT1_dis['tri_area.i1']))
+KT1_nodis_QxyThetaU= lib.smooth_data(np.array(KT1_nodis['QxyThetaU']))
+KT1_nodis_area= lib.smooth_data(np.array(KT1_nodis['tri_area.i1']))
+KT1_QxyThetaU= lib.smooth_data(np.array(KT1['QxyThetaU']))
+KT1_area= lib.smooth_data(np.array(KT1['tri_area.i1']))
+KnoT1_QxyThetaU= lib.smooth_data(np.array(KnoT1['QxyThetaU']))
+KnoT1_area= lib.smooth_data(np.array(KnoT1['tri_area.i1']))
+#time= np.array(T1_dis['time_sec'])/3600.
+dt= time[1:]-time[:-1]
+dt= lib.smooth_data(dt)
+smooth_time= lib.smooth_data(time[:-1])
+
+len(CD_QxyThetaU)
+len(total_area)
 
 plt.figure()
-plt.plot(smooth_time, T1_QxyThetaU*T1_area/total_area/dt, label='T1')
-plt.plot(smooth_time, total_QxyThetaU*T1_area/total_area/dt, label='reference')
-#plt.plot(smooth_time, sample_QxyThetaU*sample_area/total_area/dt, label='sample')
-plt.plot(smooth_time, noT1_QxyThetaU*noT1_area/total_area/dt, label='old')
-plt.plot(smooth_time, total_QxyThetaU/dt, label='total')
-plt.plot(smooth_time,T1_QxyThetaU*T1_area/total_area/dt+noT1_QxyThetaU*noT1_area/total_area/dt, label='check' )
+plt.plot(smooth_time, CD_QxyThetaU*CD_area/total_area[1:]/dt, label='recent CD')
+plt.plot(smooth_time, total_QxyThetaU[1:]*CD_area/total_area[1:]/dt, label='reference')
+plt.plot(smooth_time, noCD_QxyThetaU[1:]*noCD_area[1:]/total_area[1:]/dt, label='other')
+plt.plot(smooth_time, total_QxyThetaU[1:]/dt, label='total')
+plt.plot(smooth_time,CD_QxyThetaU*CD_area/total_area[1:]/dt+noCD_QxyThetaU[1:]*noCD_area[1:]/total_area[1:]/dt, label='check' )
 plt.xlabel(r'timeAPF[h]',fontsize=20)
-plt.ylabel(r'$\langle \delta \psi Q_{xy}\rangle$', fontsize=20)
+plt.ylabel(r'$\langle \omega Q_{xy}\rangle$', fontsize=20)
 plt.grid()
 plt.legend(loc=4)
 plt.tight_layout()
-plt.savefig('figures/T1_correlation_contribution.png', dpi=300)
+plt.savefig('figures/recent_CD_correlation_contribution.png', dpi=300)
 #plt.close()
 plt.show()
 
 
 plt.figure()
-plt.plot(smooth_time, T1_area, label='T1')
+plt.plot(smooth_time, T1_QxyThetaU*T1_area/total_area[:-1]/dt, label='recent T1')
+plt.plot(smooth_time, total_QxyThetaU[:-1]*T1_area/total_area[:-1]/dt, label='reference')
+plt.plot(smooth_time, noT1_QxyThetaU[:-1]*noT1_area[:-1]/total_area[:-1]/dt, label='other')
+plt.plot(smooth_time, total_QxyThetaU[:-1]/dt, label='total')
+plt.plot(smooth_time,T1_QxyThetaU*T1_area/total_area[:-1]/dt+noT1_QxyThetaU[:-1]*noT1_area[:-1]/total_area[:-1]/dt, label='check' )
+plt.xlabel(r'timeAPF[h]',fontsize=20)
+plt.ylabel(r'$\langle \omega Q_{xy}\rangle$', fontsize=20)
+plt.grid()
+plt.legend(loc=4)
+plt.tight_layout()
+plt.savefig('figures/recent_T1_correlation_contribution.png', dpi=300)
+#plt.close()
+plt.show()
+
+plt.figure()
+plt.plot(smooth_time, T1_dis_QxyThetaU[:-1]*T1_dis_area[:-1]/total_area[:-1]/dt, label='soon to T1')
+plt.plot(smooth_time, total_QxyThetaU[:-1]*T1_dis_area[:-1]/total_area[:-1]/dt, label='reference')
+#plt.plot(smooth_time, sample_QxyThetaU*sample_area/total_area/dt, label='sample')
+plt.plot(smooth_time, T1_nodis_QxyThetaU[:-1]*T1_nodis_area[:-1]/total_area[:-1]/dt, label='other')
+plt.plot(smooth_time, total_QxyThetaU[:-1]/dt, label='total')
+plt.plot(smooth_time,T1_dis_QxyThetaU[:-1]*T1_dis_area[:-1]/total_area[:-1]/dt+T1_nodis_QxyThetaU[:-1]*T1_nodis_area[:-1]/total_area[:-1]/dt, label='check' )
+plt.xlabel(r'timeAPF[h]',fontsize=20)
+plt.ylabel(r'$\langle \omega Q_{xy}\rangle$', fontsize=20)
+plt.grid()
+plt.legend(loc=4)
+plt.tight_layout()
+plt.savefig('figures/soon_to_T1_correlation_contribution.png', dpi=300)
+#plt.close()
+plt.show()
+
+
+plt.figure()
+plt.plot(smooth_time, CD_dis_QxyThetaU[:-1]*CD_dis_area[:-1]/total_area[:-1]/dt, label='soon to CD')
+plt.plot(smooth_time, total_QxyThetaU[:-1]*CD_dis_area[:-1]/total_area[:-1]/dt, label='reference')
+#plt.plot(smooth_time, sample_QxyThetaU*sample_area/total_area/dt, label='sample')
+plt.plot(smooth_time, CD_nodis_QxyThetaU[:-1]*CD_nodis_area[:-1]/total_area[:-1]/dt, label='other')
+plt.plot(smooth_time, total_QxyThetaU[:-1]/dt, label='total')
+plt.plot(smooth_time,CD_dis_QxyThetaU[:-1]*CD_dis_area[:-1]/total_area[:-1]/dt+CD_nodis_QxyThetaU[:-1]*CD_nodis_area[:-1]/total_area[:-1]/dt, label='check' )
+plt.xlabel(r'timeAPF[h]',fontsize=20)
+plt.ylabel(r'$\langle \omega Q_{xy}\rangle$', fontsize=20)
+plt.grid()
+plt.legend(loc=4)
+plt.tight_layout()
+plt.savefig('figures/soon_to_CD_correlation_contribution.png', dpi=300)
+#plt.close()
+plt.show()
+
+
+plt.figure()
+plt.plot(smooth_time, KT1_QxyThetaU*KT1_area/Ktotal_area[1:]/dt, label='recent T1')
+plt.plot(smooth_time, Ktotal_QxyThetaU[1:]*KT1_area/Ktotal_area[1:]/dt, label='reference')
+plt.plot(smooth_time, KnoT1_QxyThetaU[1:]*KnoT1_area[1:]/Ktotal_area[1:]/dt, label='other')
+plt.plot(smooth_time, Ktotal_QxyThetaU[1:]/dt, label='total')
+plt.plot(smooth_time, KT1_QxyThetaU*KT1_area/Ktotal_area[1:]/dt+KnoT1_QxyThetaU[1:]*KnoT1_area[1:]/Ktotal_area[1:]/dt, label='check' )
+plt.xlabel(r'timeAPF[h]',fontsize=20)
+plt.ylabel(r'$\langle \omega Q_{xy}\rangle$', fontsize=20)
+plt.grid()
+plt.legend(loc=4)
+plt.tight_layout()
+#plt.savefig('figures/recent_T1_correlation_contribution.png', dpi=300)
+#plt.close()
+plt.show()
+
+plt.figure()
+plt.plot(smooth_time, KT1_dis_QxyThetaU[:-1]*KT1_dis_area[:-1]/Ktotal_area[:-1]/dt, label='soon to T1')
+plt.plot(smooth_time, Ktotal_QxyThetaU[:-1]*KT1_dis_area[:-1]/Ktotal_area[:-1]/dt, label='reference')
+#plt.plot(smooth_time, sample_QxyThetaU*sample_area/total_area/dt, label='sample')
+plt.plot(smooth_time, KT1_nodis_QxyThetaU[:-1]*KT1_nodis_area[:-1]/Ktotal_area[:-1]/dt, label='other')
+plt.plot(smooth_time, Ktotal_QxyThetaU[:-1]/dt, label='total')
+plt.plot(smooth_time, KT1_dis_QxyThetaU[:-1]*KT1_dis_area[:-1]/Ktotal_area[:-1]/dt+KT1_nodis_QxyThetaU[:-1]*KT1_nodis_area[:-1]/Ktotal_area[:-1]/dt, label='check' )
+plt.xlabel(r'timeAPF[h]',fontsize=20)
+plt.ylabel(r'$\langle \omega Q_{xy}\rangle$', fontsize=20)
+plt.grid()
+plt.legend(loc=4)
+plt.tight_layout()
+#plt.savefig('figures/soon_to_T1_correlation_contribution.png', dpi=300)
+#plt.close()
+plt.show()
+
+
+
+
+plt.figure()
+plt.plot(smooth_time, T1_area, label='recent T1')
 #plt.plot(frames, sample_area/total_area, label='sample')
-plt.plot(smooth_time, noT1_area, label='old')
+plt.plot(smooth_time, noT1_area[1:], label='other')
+plt.plot(smooth_time, total_area[1:], label= 'total')
+plt.plot(smooth_time, T1_area+ noT1_area[1:], label='check')
 plt.xlabel(r'timeAPF[h]',fontsize=20)
 plt.ylabel(r'area[px]', fontsize=20)
 plt.grid()
 plt.legend(loc=7)
 plt.tight_layout()
-plt.savefig('figures/T1_area.png', dpi=300)
+#plt.savefig('figures/soon_to_T1_area.png', dpi=300)
+plt.show()
+
+plt.figure()
+plt.plot(smooth_time, T1_area[:-1], label='soon to T1')
+#plt.plot(frames, sample_area/total_area, label='sample')
+plt.plot(smooth_time, noT1_area[:-1], label='other')
+plt.plot(smooth_time, total_area[:-1], label= 'total')
+plt.plot(smooth_time, T1_area[:-1]+ noT1_area[:-1], label='check')
+plt.xlabel(r'timeAPF[h]',fontsize=20)
+plt.ylabel(r'area[px]', fontsize=20)
+plt.grid()
+plt.legend(loc=7)
+plt.tight_layout()
+plt.savefig('figures/soon_to_T1_area.png', dpi=300)
 plt.show()
 
 plt.figure()
@@ -264,7 +455,12 @@ plt.show()
 
 
 
+#######################################################################
 
+wdf= pp.read_csv(lib.DB_path+'PupalWingMovies.csv', sep='\t')
+
+name= 'MTdp_25deg_140222'
+np.isnan(np.array(wdf[wdf['nice_name']==name]['time_shift_sec'])[0])
 
 
 ## SHEAR CORRECTED DIMENSIONS##############
@@ -273,6 +469,106 @@ m= {}
 m['WT']= lib.Movie('WT_25deg_111103')
 m['ALC']= lib.Movie('WT_antLinkCut-25deg_131227')
 m['DLC']= lib.Movie('WT_distLinkCut-25deg_131226')
+m['dp']= lib.Movie('MTdp_25deg_140222')
+
+m['dp'].time
+m['dp'].dt
+
+pm= 'dp'
+m[pm].hinge_fcy, m[pm].blade_fcy= m[pm].fancy_hinge_blade()
+m[pm].hinge_old, m[pm].blade_old= m[pm].whole_hinge_blade()
+
+m[pm].hinge_fcy_L, m[pm].hinge_fcy_h= lib.region_mean_length_height(m[pm].hinge_fcy)
+m[pm].blade_fcy_L, m[pm].blade_fcy_h= lib.region_mean_length_height(m[pm].blade_fcy)
+m[pm].hinge_old_L, m[pm].hinge_old_h= lib.region_mean_length_height(m[pm].hinge_old)
+m[pm].blade_old_L, m[pm].blade_old_h= lib.region_mean_length_height(m[pm].blade_old)
+m[pm].hinge_seg_L, m[pm].hinge_seg_h= lib.region_mean_length_height(m[pm].region_cells('hinge'))
+m[pm].blade_seg_L, m[pm].blade_seg_h= lib.region_mean_length_height(m[pm].region_cells('blade'))
+
+m[pm].blade_piv, m[pm].hinge_piv= m[pm].load_PIV_whole_wing('blade_only'), m[pm].load_PIV_whole_wing('hinge_only')
+m[pm].hinge_piv_vxx= np.array(m[pm].hinge_piv.groupby('frame')['Vxx'].mean()*3600.)
+m[pm].hinge_piv_vyy= np.array(m[pm].hinge_piv.groupby('frame')['Vyy'].mean()*3600.)
+m[pm].blade_piv_vxx= np.array(m[pm].blade_piv.groupby('frame')['Vxx'].mean()*3600.)
+m[pm].blade_piv_vyy= np.array(m[pm].blade_piv.groupby('frame')['Vyy'].mean()*3600.)
+
+m[pm].blade_shear_data, m[pm].hinge_shear_data= m[pm].region_deform_tensor('blade'), m[pm].region_deform_tensor('hinge')
+m[pm].dt= m[pm].blade_shear_data['timeInt_sec']/3600.
+m[pm].blade_tracked_area, m[pm].hinge_tracked_area= lib.region_area(m[pm].region_cells('blade')), lib.region_area(m[pm].region_cells('hinge'))
+m[pm].vkk_blade= (np.array(m[pm].blade_tracked_area[1:])-np.array(m[pm].blade_tracked_area[:-1]))/m[pm].dt/np.array(m[pm].blade_tracked_area[:-1])
+m[pm].vkk_hinge= (np.array(m[pm].hinge_tracked_area[1:])-np.array(m[pm].hinge_tracked_area[:-1]))/m[pm].dt/np.array(m[pm].hinge_tracked_area[:-1])
+
+m[pm].hinge_tri_vxx= np.array(m[pm].hinge_shear_data['nu_xx'])/m[pm].dt+0.5*m[pm].vkk_hinge
+m[pm].hinge_tri_vyy= -(np.array(m[pm].hinge_shear_data['nu_xx'])/m[pm].dt-0.5*m[pm].vkk_hinge)
+m[pm].blade_tri_vxx= np.array(m[pm].blade_shear_data['nu_xx'])/m[pm].dt+0.5*m[pm].vkk_blade
+m[pm].blade_tri_vyy= -(np.array(m[pm].blade_shear_data['nu_xx'])/m[pm].dt-0.5*m[pm].vkk_blade)
+
+print('Done!')
+
+Nframes= len(m[pm].frames)-1
+m[pm].hinge_shear_h= np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].hinge_shear_L= np.exp(np.cumsum(m[pm].hinge_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].blade_shear_h= np.exp(np.cumsum(m[pm].blade_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
+m[pm].blade_shear_L= np.exp(np.cumsum(m[pm].blade_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
+
+
+pm= 'dp'
+fitting_shift= 100
+def scaling_func(beta):
+    return lib.square_difference(beta*m[pm].hinge_shear_h[fitting_shift:], m[pm].hinge_fcy_h[fitting_shift:-1])
+m[pm].beta_hinge_h= optimize.anneal(scaling_func, m[pm].hinge_fcy_h[0])[0]
+
+def scaling_func(beta):
+    return lib.square_difference(beta*m[pm].hinge_shear_L[fitting_shift:], m[pm].hinge_fcy_L[fitting_shift:-1])
+m[pm].beta_hinge_L= optimize.anneal(scaling_func, m[pm].hinge_fcy_L[0])[0]
+
+def scaling_func(beta):
+    return lib.square_difference(beta*m[pm].blade_shear_h[fitting_shift:], m[pm].blade_fcy_h[fitting_shift:-1])
+m[pm].beta_blade_h= optimize.anneal(scaling_func, m[pm].blade_fcy_h[0])[0]
+
+def scaling_func(beta):
+    return lib.square_difference(beta*m[pm].blade_shear_L[fitting_shift:], m[pm].blade_fcy_L[fitting_shift:-1])
+m[pm].beta_blade_L= optimize.anneal(scaling_func, m[pm].blade_fcy_L[0])[0]
+
+
+f, ((axBH, axHH),(axBL, axHL))= plt.subplots(2,2)
+
+axBH.set_ylabel(r'blade height[px]')
+axBH.set_xlabel(r'timeAPF[h]')
+axBH.plot(m['dp'].time[0]+np.cumsum(m['dp'].dt), m['dp'].beta_blade_h*m['dp'].blade_shear_h, label='dp', color='red')
+axBH.plot(m['dp'].time, m['dp'].blade_fcy_h[:-1], color='blue')
+axBH.grid()
+
+axHH.set_ylabel(r'hinge height[px]')
+axHH.set_xlabel(r'timeAPF[h]')
+axHH.plot(m['dp'].time[0]+np.cumsum(m['dp'].dt), m['dp'].beta_hinge_h*m['dp'].hinge_shear_h, label='dp', color='red')
+axHH.plot(m['dp'].time, m['dp'].hinge_fcy_h[:-1], color='blue')
+axHH.legend(loc='best')
+axHH.grid()
+
+axBL.set_ylabel(r'blade length[px]')
+axBL.set_xlabel(r'timeAPF[h]')
+axBL.plot(m['dp'].time[0]+np.cumsum(m['dp'].dt), m['dp'].beta_blade_L*m['dp'].blade_shear_L, label='dp', color='red')
+axBL.plot(m['dp'].time, m['dp'].blade_fcy_L[:-1], color='blue')
+axBL.grid()
+
+axHL.set_ylabel(r'hinge_length[px]')
+axHL.set_xlabel(r'timeAPF[h]')
+axHL.plot(m['dp'].time[0]+np.cumsum(m['dp'].dt), m['dp'].beta_hinge_L*m['dp'].hinge_shear_L, label='dp', color='red')
+axHL.plot(m['dp'].time, m['dp'].hinge_fcy_L[:-1], color='blue')
+axHL.grid()
+
+f.tight_layout()
+#plt.savefig('figures/cumulative_piv_shear_fitted_after_22.png', dpi=1000)
+plt.show()
+
+df_otp= pd.DataFrame()
+df_otp['dp_blade_shear_h']= m['dp'].beta_blade_h*m['dp'].blade_shear_h
+df_otp['dp_hinge_shear_h']= m['dp'].beta_hinge_h*m['dp'].hinge_shear_h
+df_otp['dp_blade_shear_L']= m['dp'].beta_blade_L*m['dp'].blade_shear_L
+df_otp['dp_hinge_shear_L']= m['dp'].beta_hinge_L*m['dp'].hinge_shear_L
+
+df_otp.to_csv('height_length_data/shear_corrected_dimensions_dumpy.csv')
+
 
 pm= 'DLC'
 
@@ -313,6 +609,23 @@ m[pm].hinge_shear_h= np.exp(np.cumsum(m[pm].hinge_piv_vyy[:Nframes]*m[pm].dt[:Nf
 m[pm].hinge_shear_L= np.exp(np.cumsum(m[pm].hinge_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
 m[pm].blade_shear_h= np.exp(np.cumsum(m[pm].blade_piv_vyy[:Nframes]*m[pm].dt[:Nframes]))
 m[pm].blade_shear_L= np.exp(np.cumsum(m[pm].blade_piv_vxx[:Nframes]*m[pm].dt[:Nframes]))
+
+pm= 'WT'
+def scaling_func(beta):
+    return lib.square_difference(beta*m[pm].hinge_shear_h[78:], m[pm].hinge_fcy_h[78:-1])
+m[pm].beta_hinge_h= optimize.anneal(scaling_func, m[pm].hinge_fcy_h[0])[0]
+
+def scaling_func(beta):
+    return lib.square_difference(beta*m[pm].hinge_shear_L[78:], m[pm].hinge_fcy_L[78:-1])
+m[pm].beta_hinge_L= optimize.anneal(scaling_func, m[pm].hinge_fcy_L[0])[0]
+
+def scaling_func(beta):
+    return lib.square_difference(beta*m[pm].blade_shear_h[78:], m[pm].blade_fcy_h[78:-1])
+m[pm].beta_blade_h= optimize.anneal(scaling_func, m[pm].blade_fcy_h[0])[0]
+
+def scaling_func(beta):
+    return lib.square_difference(beta*m[pm].blade_shear_L[78:], m[pm].blade_fcy_L[78:-1])
+m[pm].beta_blade_L= optimize.anneal(scaling_func, m[pm].blade_fcy_L[0])[0]
 
 
 pm= 'WT'

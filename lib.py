@@ -8,6 +8,7 @@ import pandas.io.parsers as pp
 import rpy2.robjects as robjects
 import rpy2.robjects as ro
 import pandas.rpy.common as com
+from sets import Set
 import os.path
 from PyQt4 import QtGui
 import time
@@ -105,6 +106,8 @@ def quick_plot(data):
     for d in data:
         plt.plot(d)
     plt.show()
+def smooth_data(x, NSmooth=10):
+    return np.convolve(x, 1.*np.ones(NSmooth)/NSmooth, mode='valid')
 
 
 
@@ -112,19 +115,19 @@ class Movie:
     def __init__(self, name):
         self.name= name
         self.con= lite.connect(DB_path+name+'/'+name+'.sqlite')
-        self.cells_loaded= False
-        self.cellinfo_loaded= False
-        self.dbonds_loaded= False
-        self.Ta_t_loaded= False
-        self.triList_loaded= False
-        self.triTracked_loaded= False
-        self.roiBT_loaded= False
-        self.triCategories_loaded= False
+        self.loaded= Set()
+        pupalWings= pp.read_csv(DB_path+'PupalWingMovies.csv', sep='\t')
+        if not np.isnan(np.array(pupalWings[pupalWings['nice_name']==name]['time_shift_sec'])[0]):
+            self.time= np.array(self.region_deform_tensor('blade')['time_sec'])/3600.+15. \
+                   + np.array(pupalWings[pupalWings['nice_name']==name]['time_shift_sec'])[0]/3600.
+            self.dt= self.time[1:] - self.time[:-1]
+        else:
+            print('While loading '+ name+'. No time shift provided for this movie! No time will be loaded.')
     def load_cells(self):
-        if self.cells_loaded == False:
+        if not 'cells' in self.loaded:
             print('Loading cells from database...')
             self.cells= psql.read_sql('SELECT * FROM cells WHERE cell_id > 10000;', self.con)
-            self.cells_loaded= True
+            self.loaded.add('cells')
             self.frames= sorted(self.cells['frame'].unique())
     def RData_to_csv(self, table, file_RData, file_csv):
         if (not os.path.isfile(file_csv)) or (time.ctime(os.path.getmtime(file_RData)) > time.ctime(os.path.getmtime(file_csv))):
@@ -133,47 +136,47 @@ class Movie:
             ro.r('write.csv('+table+', "'+file_csv+'")')
             print('Converted!')
     def load_cellinfo(self):
-        if self.cellinfo_loaded == False:
+        if not 'cellinfo' in self.loaded:
             print('Loading cellinfo from database...')
             self.cellinfo= psql.read_sql('SELECT * FROM cellinfo WHERE cell_id > 10000;', self.con)
-            self.cellinfo_loaded= True
+            self.loaded.add('cellinfo')
     def load_triTracked(self):
-        if self.triTracked_loaded==False:
+        if not 'triTracked' in self.loaded:
             file_csv=DB_path+self.name+'/shear_contrib/triTracked.csv'
             file_RData=DB_path+self.name+'/shear_contrib/triTracked.RData'
             print('Loading triTracked...')
             self.RData_to_csv('triTracked',file_RData, file_csv)
             print('Done!')
-            self.triTracked= pd.read_csv(file_csv)
-            self.triTracked_loaded= True
+            self.triTracked= pd.read_csv(file_csv)[['frame','cell_a','cell_b','cell_c']]
+            self.loaded.add('triTracked')
     def load_triCategories(self):
-        if self.triCategories_loaded== False:
+        if not 'triCategories' in self.loaded:
             file_csv=DB_path+self.name+'/tri_categories/triangleCategories.csv'
             file_RData=DB_path+self.name+'/tri_categories/triangleCategories.RData'
             print('Loading triCategories...')
             self.RData_to_csv('triCategories',file_RData, file_csv)
             print('Done!')
             self.triCategories= pd.read_csv(file_csv)
-            self.triCategories_loaded= True
+            self.loaded.add('triCategories')
     def load_Ta_t(self):
-        if self.Ta_t_loaded == False:
+        if not 'Ta_t' in self.loaded:
             file_csv= DB_path+self.name+'/shear_contrib/Ta_t.csv'
             file_RData= DB_path+self.name+'/shear_contrib/Ta_t.RData'
             print('Loading Ta_t...')
             self.RData_to_csv('Ta_t',file_RData, file_csv)
             print('Done!')
             self.Ta_t= pd.read_csv(file_csv)
-            self.Ta_t_loaded= True
+            self.loaded.add('Ta_t')
             del self.Ta_t[self.Ta_t.columns[0]]
     def load_roiBT(self):
-        if self.roiBT_loaded == False:
+        if not 'roiBT' in self.loaded:
             file_csv= DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv'
             file_RData= DB_path+self.name+'/roi_bt/lgRoiSmoothed.RData'
             print('Loading roiBT ...')
             self.RData_to_csv('lgRoiSmoothed', file_RData, file_csv)
             print('Done!')
             self.roiBT= pd.read_csv(DB_path+self.name+'/roi_bt/lgRoiSmoothed.csv')
-            self.roiBT_loaded= True
+            self.loaded.add('roiBT')
             self.regions= self.roiBT['roi'].unique()
     def load_triList(self):
         if self.triList_loaded == False:
@@ -240,7 +243,33 @@ class Movie:
             f_blade= f_blade.append(trivial_blade)
             f_blade= f_blade.append(central_blade)
         return f_hinge, f_blade
-    def tri_track_process(self, d):
+    def tri_tracking(self):
+        if not self.triTracked:
+            self.load_triTracked()
+        self.triTracked['tri_hash_a']= (
+        self.triTracked['cell_a']*10**10
+            + self.triTracked['cell_b']*10**5
+            + self.triTracked['cell_c']
+            )
+        self.triTracked['tri_hash_b']= (
+            self.triTracked['cell_b']*10**10
+            + self.triTracked['cell_c']*10**5
+            + self.triTracked['cell_a']
+            )
+        self.triTracked['tri_hash_c']= (
+            self.triTracked['cell_c']*10**10
+            + self.triTracked['cell_a']*10**5
+            + self.triTracked['cell_b']
+            )
+        self.triTracked['tri_hash']= (
+            self.triTracked[['tri_hash_a',
+                             'tri_hash_b',
+                             'tri_hash_c']].min(axis=1)
+            )
+        self.triTracked= self.triTracked.sort(['tri_hash', 'frame'])
+        self.triTracked= self.triTracked.reset_index()
+        self.triTracked= self.triTracked[['frame', 'tri_hash','type']]
+    def tri_track_first_occ(self, d):
         last_from= [0]
         cd= np.cumsum(d[1:])
         for x in d[1:]:
@@ -249,3 +278,23 @@ class Movie:
             else:
                 last_from.append(cd[len(last_from)-1])
         return np.array(last_from)
+    def tri_track_last_occ(self, g, d):
+        last_occ=np.append(
+            np.array([0 if np.abs(x) < 2 else 1 for x in d[:-1]])*(np.array(g)[:-1]),
+            np.array(g)[-1])
+        return np.array(pd.Series(last_occ).replace(0,method='bfill'))
+    def shear_corrected_dimensions_HB(self):
+        self.hinge_fcy, self.blade_fcy= self.fancy_hinge_blade()
+        self.blade_L, self.blade_h= region_mean_length_height(self.blade_fcy)
+        self.hinge_L, self.hinge_h= region_mean_length_height(self.hinge_fcy)
+        self.blade_piv, self.hinge_piv= self.load_PIV_whole_wing('blade_only'), self.load_PIV_whole_wing('hinge_only')
+        self.hinge_piv_vxx= np.array(self.hinge_piv.groupby('frame')['Vxx'].mean()*3600.)
+        self.hinge_piv_vyy= np.array(self.hinge_piv.groupby('frame')['Vyy'].mean()*3600.)
+        self.blade_piv_vxx= np.array(self.blade_piv.groupby('frame')['Vxx'].mean()*3600.)
+        self.blade_piv_vyy= np.array(self.blade_piv.groupby('frame')['Vyy'].mean()*3600.)
+
+
+          
+        
+
+
